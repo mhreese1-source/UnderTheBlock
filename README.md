@@ -5,7 +5,7 @@
 ARC 327R · Architecture & Computation · UT Austin · Fall 2026 · Micah Reese
 A2 Disposition Playground → A3 The Instrument
 
-**Site:** [mhreese1-source.github.io/undertheblock](https://mhreese1-source.github.io/undertheblock/)
+**Site:** [mhreese1-source.github.io/UnderTheBlock](https://mhreese1-source.github.io/UnderTheBlock/)
 
 ![A2 live model in section: four tenant buildings, the service trench cut open in front of them, glass lifts and the dock lift at the street](images/a2-render.jpg)
 

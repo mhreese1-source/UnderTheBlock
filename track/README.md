@@ -4,7 +4,7 @@ A live field dashboard for a micro-freight block. Follow a package from the load
 
 ARC 327R · Architecture & Computation · A3 "The Instrument" · Micah Reese
 
-**Open the app:** [mhreese1-source.github.io/undertheblock/track/](https://mhreese1-source.github.io/undertheblock/track/) · part of the [Under the Block project site](../README.md)
+**Open the app:** [mhreese1-source.github.io/UnderTheBlock/track/](https://mhreese1-source.github.io/UnderTheBlock/track/) · part of the [Under the Block project site](../README.md)
 One self-contained `index.html`. No install, no build step, and it works offline (fonts fall back to system fonts).
 
 ---
