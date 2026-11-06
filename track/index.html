@@ -7,18 +7,18 @@
 <title>UnderTheBlock Track</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
 <style>
   /* Layout: a delivery-tracking app. Map of the block in plan (the stratum drawn as a dashed lane under
      the plaza) beside a package sheet, like a ride-hailing app; a data view; and a plain-language explainer.
      One deliberate dark look shared with the UnderTheBlock toy: ink, mint = your package and measured
      values, amber = outgoing mail and assumed values, coral = trouble. */
   :root {
-    color-scheme: dark;
-    --bg: #0d1214; --bg2: #090d0f; --panel: #141b1e; --panel2: #1a2327; --rule: #2a373c; --rule2: #1f292d;
-    --text: #edf2f1; --body: #b3bfbf; --dim: #7b898b; --accent: #8fd6b3; --accent-ink: #0b2219;
-    --amber: #f0c987; --warn: #ff8a6b; --blue: #6cb6e0; --ok: #9de08a;
-    --plaza: #1b2427; --block: #222d31; --street: #11181b;
+    color-scheme: light;
+    --bg: #ffffff; --bg2: #f4f4f2; --panel: #ffffff; --panel2: #f6f6f4; --rule: #e1e2df; --rule2: #ececea;
+    --text: #0f1111; --body: #3d4241; --dim: #7a7f7e; --accent: #14905f; --accent-ink: #ffffff;
+    --amber: #b97a1c; --warn: #d1492b; --blue: #2f74a8; --ok: #1f8a4c;
+    --plaza: #fafaf8; --block: #ffffff; --street: #f1f2ef;
     --display: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
     --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -33,7 +33,7 @@
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
   a { color: var(--accent); }
 
-  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: rgba(13,18,20,0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule2); }
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule2); }
   .bar-in { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 14px; min-height: 58px; flex-wrap: wrap; padding-block: 8px;
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .brand { display: flex; align-items: center; gap: 9px; flex: none; }
@@ -45,7 +45,7 @@
   .tabs a.on { background: var(--panel2); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
   .clockchip { margin-left: auto; display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--body); }
   .clockchip b { color: var(--text); font-size: 15px; font-weight: 600; }
-  .clockchip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(143,214,179,0.18); }
+  .clockchip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(20,144,95,0.18); }
   .clockchip.paused .dot { background: var(--dim); box-shadow: none; }
   @media (max-width: 720px) { .tabs { order: 3; width: 100%; } .tabs a { flex: 1; text-align: center; } }
 
@@ -61,17 +61,17 @@
   .card + .card { margin-top: 14px; }
   .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--panel2); color: var(--text); border: 1px solid var(--rule); border-radius: 9px; padding: 8px 12px; font-size: 13.5px; font-weight: 500; cursor: pointer; min-height: 38px; }
-  .btn:hover { border-color: #3d4d53; }
+  .btn:hover { border-color: #c9ccc8; }
   .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-  .btn.on { background: #e9efed; color: #0d1214; border-color: #e9efed; }
+  .btn.on { background: #0f1111; color: #ffffff; border-color: #0f1111; }
   .btn.small { min-height: 30px; padding: 4px 9px; font-size: 12.5px; border-radius: 7px; }
   select { background: var(--bg2); color: var(--text); border: 1px solid var(--rule); border-radius: 8px; padding: 7px 9px; font-size: 13.5px; }
   input[type=number] { background: var(--bg2); color: var(--text); border: 1px solid var(--rule); border-radius: 8px; padding: 7px 9px; font-size: 13.5px; width: 84px; }
   .tag { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
-  .tag.a { color: var(--warn); border-color: rgba(255,138,107,0.45); }
-  .tag.m { color: var(--accent); border-color: rgba(143,214,179,0.45); }
-  .tag.s { color: var(--amber); border-color: rgba(240,201,135,0.45); }
-  .tag.p { color: var(--blue); border-color: rgba(108,182,224,0.45); }
+  .tag.a { color: var(--warn); border-color: rgba(209,73,43,0.45); }
+  .tag.m { color: var(--accent); border-color: rgba(20,144,95,0.45); }
+  .tag.s { color: var(--amber); border-color: rgba(185,122,28,0.45); }
+  .tag.p { color: var(--blue); border-color: rgba(47,116,168,0.45); }
 
   /* track view */
   .track { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
@@ -90,12 +90,12 @@
   .pkghead { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
   .pill { font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--rule); color: var(--text); white-space: nowrap; }
   .pill.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .pill.warn { color: var(--warn); border-color: rgba(255,138,107,0.5); }
+  .pill.warn { color: var(--warn); border-color: rgba(209,73,43,0.5); }
   .eta { font-family: var(--display); font-size: 34px; font-weight: 700; color: var(--text); line-height: 1.05; margin-top: 8px; }
   .eta small { font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--dim); }
   .band { position: relative; height: 34px; margin: 14px 0 4px; }
   .band .track0 { position: absolute; left: 0; right: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--rule2); }
-  .band .rng { position: absolute; top: 10px; height: 14px; border-radius: 7px; background: rgba(143,214,179,0.28); border: 1px solid rgba(143,214,179,0.6); }
+  .band .rng { position: absolute; top: 10px; height: 14px; border-radius: 7px; background: rgba(20,144,95,0.28); border: 1px solid rgba(20,144,95,0.6); }
   .band .med { position: absolute; top: 6px; width: 3px; height: 22px; background: var(--accent); border-radius: 2px; transform: translateX(-1px); }
   .band .now { position: absolute; top: 2px; width: 2px; height: 30px; background: var(--text); opacity: 0.7; }
   .bandlbl { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--dim); }
@@ -108,22 +108,22 @@
   .steps .mk { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rule); background: var(--bg); z-index: 1; }
   .steps li.done .mk { background: var(--accent); border-color: var(--accent); }
   .steps li.done::before { background: var(--accent); }
-  .steps li.now .mk { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(143,214,179,0.2); background: var(--bg); }
-  .steps li.bad .mk { border-color: var(--warn); box-shadow: 0 0 0 4px rgba(255,138,107,0.2); }
+  .steps li.now .mk { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(20,144,95,0.2); background: var(--bg); }
+  .steps li.bad .mk { border-color: var(--warn); box-shadow: 0 0 0 4px rgba(209,73,43,0.2); }
   .steps .t { font-size: 14px; color: var(--text); font-weight: 500; }
   .steps .d { font-size: 12.5px; color: var(--dim); line-height: 1.45; }
   .steps .w { font-family: var(--mono); font-size: 11.5px; color: var(--dim); white-space: nowrap; }
   .steps li.pending .t { color: var(--dim); font-weight: 400; }
-  .ping { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: rgba(143,214,179,0.07); border: 1px solid rgba(143,214,179,0.3); }
+  .ping { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: rgba(20,144,95,0.07); border: 1px solid rgba(20,144,95,0.3); }
   .ping .pin { width: 40px; height: 40px; flex: none; }
   .ping .where { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.1; }
   .ping .sub { font-size: 12.5px; color: var(--body); }
   .order { display: grid; gap: 10px; }
   .tenants { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
   .tenants button { background: var(--panel2); border: 1px solid var(--rule); color: var(--text); border-radius: 9px; padding: 9px 4px; cursor: pointer; font-weight: 600; font-family: var(--display); font-size: 16px; }
-  .tenants button.on { background: #e9efed; color: #0d1214; border-color: #e9efed; }
+  .tenants button.on { background: #0f1111; color: #ffffff; border-color: #0f1111; }
   .tenants button small { display: block; font-family: var(--mono); font-size: 10px; font-weight: 400; color: var(--dim); }
-  .tenants button.on small { color: #4a5658; }
+  .tenants button.on small { color: #c9ccc8; }
   .notes { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
   .notes .n { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; font-size: 13px; line-height: 1.4; padding: 7px 0; border-top: 1px solid var(--rule2); }
   .notes .n:first-child { border-top: 0; }
@@ -131,7 +131,7 @@
   .notes .n.warn .x { color: var(--warn); }
   .notes .n.pos .x b { color: var(--accent); }
   .toasts { position: fixed; z-index: 80; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); pointer-events: none; }
-  .toast { pointer-events: auto; background: rgba(26,35,39,0.97); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); font-size: 13.5px; color: var(--text); line-height: 1.4; animation: tin 0.25s ease-out; }
+  .toast { pointer-events: auto; background: rgba(255,255,255,0.98); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(15,17,17,0.12); font-size: 13.5px; color: var(--text); line-height: 1.4; animation: tin 0.25s ease-out; }
   .toast.warn { border-left-color: var(--warn); }
   .toast .tt { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
   .toast.warn .tt { color: var(--warn); }
@@ -167,6 +167,19 @@
   .how { font-size: 12.5px; color: var(--dim); line-height: 1.5; margin-top: 8px; border-top: 1px dashed var(--rule); padding-top: 8px; }
   .how b { color: var(--body); }
   details.src summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+
+  /* ===== light pill theme, shared with the project homepage ===== */
+  :root { --display: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif; --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace; }
+  body { letter-spacing: -0.005em; }
+  h1, h2, .wordmark, .eta, .stat .sv, .vcard .a, .big { font-weight: 500 !important; letter-spacing: -0.03em; }
+  h3 { font-weight: 550; letter-spacing: -0.01em; }
+  .btn, .cta, .seg, .seg button, .tabs, .tabs a, .pill, .badge, .chip, .tag, .tenants button, select, input[type=number], input[type=text] { border-radius: 999px !important; }
+  textarea { border-radius: 14px !important; }
+  .card, .panel, section.demo, .sp-group, .kpis, .tablewrap, .vcard, .found, .law, .ping, .honest, details.hood, .hero-stats, .stage .figure, .check, .term, dl.terms .term, .mapcard { border-radius: 18px !important; }
+  .card, section.demo, .vcard, .mapcard { box-shadow: 0 1px 2px rgba(15,17,17,0.04), 0 10px 30px rgba(15,17,17,0.05); border-color: #ececea !important; }
+  .btn.primary, .btn.go, .cta.primary, .bigtap:not(.amber):not(.blue) { background: #0f1111 !important; color: #ffffff !important; border-color: #0f1111 !important; }
+  .bigtap { border-radius: 22px !important; }
+  .eyebrow, .label, .partlabel { letter-spacing: 0.04em; }
 </style>
 
 </head>
@@ -174,7 +187,7 @@
 <header class="bar">
   <div class="bar-in">
     <div class="brand">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="7" fill="#1a2327" stroke="#2a373c"/><path d="M5 12h22" stroke="#7b898b" stroke-width="1.6"/><rect x="5" y="17" width="22" height="6" rx="1.5" fill="none" stroke="#8fd6b3" stroke-width="1.6"/><rect x="8" y="18.6" width="4" height="2.8" rx=".6" fill="#8fd6b3"/><rect x="19" y="18.6" width="4" height="2.8" rx=".6" fill="#d8ab5a"/><path d="M24 12v5" stroke="#8fd6b3" stroke-width="1.6"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="7" fill="#f6f6f4" stroke="#e1e2df"/><path d="M5 12h22" stroke="#7a7f7e" stroke-width="1.6"/><rect x="5" y="17" width="22" height="6" rx="1.5" fill="none" stroke="#14905f" stroke-width="1.6"/><rect x="8" y="18.6" width="4" height="2.8" rx=".6" fill="#14905f"/><rect x="19" y="18.6" width="4" height="2.8" rx=".6" fill="#b97a1c"/><path d="M24 12v5" stroke="#14905f" stroke-width="1.6"/></svg>
       <div class="wordmark">UnderTheBlock <span>Track</span></div>
     </div>
     <nav class="tabs" aria-label="Views">
@@ -203,10 +216,10 @@
         <canvas id="map" aria-label="Map of the block: street and loading dock on the right, the one-lane stratum under the plaza, four tenant buildings above it, and every robot as a dot"></canvas>
         <div class="legend">
           <span><i style="background:var(--accent)"></i>your package</span>
-          <span><i style="background:#5f8f7b"></i>other deliveries</span>
+          <span><i style="background:#9aa09e"></i>other deliveries</span>
           <span><i style="background:var(--amber)"></i>outgoing mail</span>
-          <span><i style="background:transparent;border:1.5px dashed #6b7c80"></i>stratum, 2.3 m below the plaza</span>
-          <span><i style="background:#2f5a46;border-radius:2px"></i>passing bay (2 carts)</span>
+          <span><i style="background:transparent;border:1.5px dashed #9aa09e"></i>stratum, 2.3 m below the plaza</span>
+          <span><i style="background:#d8ece2;border-radius:2px"></i>passing bay (2 carts)</span>
         </div>
         <div class="mapctl">
           <button class="btn small" id="btnPlay">Pause</button>
@@ -239,7 +252,7 @@
           <div class="bandlbl"><span id="bandLo"></span><span id="bandMid"></span><span id="bandHi"></span></div>
           <div class="honest" id="honest"></div>
           <div class="ping" id="ping">
-            <svg class="pin" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3c-7 0-12.5 5.4-12.5 12.2C7.5 24.4 20 37 20 37s12.5-12.6 12.5-21.8C32.5 8.4 27 3 20 3z" fill="#8fd6b3"/><circle cx="20" cy="15.5" r="5" fill="#0b2219"/></svg>
+            <svg class="pin" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3c-7 0-12.5 5.4-12.5 12.2C7.5 24.4 20 37 20 37s12.5-12.6 12.5-21.8C32.5 8.4 27 3 20 3z" fill="#14905f"/><circle cx="20" cy="15.5" r="5" fill="#ffffff"/></svg>
             <div><div class="where" id="pingWhere">Dock pad 2</div><div class="sub" id="pingSub"></div></div>
           </div>
           <ol class="steps" id="steps"></ol>
@@ -1020,56 +1033,57 @@ function draw() {
   const L = G = layout(); const g = cv.getContext('2d');
   g.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
   const { W, H } = L;
-  g.fillStyle = '#11181b'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#f1f2ef'; g.fillRect(0, 0, W, H);
   // street
-  g.fillStyle = '#0b1012'; g.fillRect(L.streetX, 0, L.streetW, H);
-  g.strokeStyle = '#3a4a50'; g.setLineDash([10, 10]); g.beginPath(); g.moveTo(L.streetX + L.streetW / 2, 0); g.lineTo(L.streetX + L.streetW / 2, H); g.stroke(); g.setLineDash([]);
-  g.fillStyle = '#7b898b'; g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  g.fillStyle = '#e4e5e1'; g.fillRect(L.streetX, 0, L.streetW, H);
+  g.strokeStyle = '#c9ccc8'; g.setLineDash([10, 10]); g.beginPath(); g.moveTo(L.streetX + L.streetW / 2, 0); g.lineTo(L.streetX + L.streetW / 2, H); g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#7a7f7e'; g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
   g.save(); g.translate(L.streetX + L.streetW - 8, H * 0.86); g.rotate(-Math.PI / 2); g.fillText('STREET', 0, 0); g.restore();
   // plaza
-  g.fillStyle = '#182124'; rr(g, 8, L.H * 0.4, L.right + 4, H * 0.56, 10); g.fill();
-  g.fillStyle = '#7b898b'; g.fillText('PLAZA · street level', 16, H * 0.96 - 10);
+  g.fillStyle = '#fafaf8'; rr(g, 8, L.H * 0.4, L.right + 4, H * 0.56, 10); g.fill();
+  g.fillStyle = '#7a7f7e'; g.fillText('PLAZA · street level', 16, H * 0.96 - 10);
   // buildings
   SETTINGS.BUILDING_CELLS.forEach((c, b) => {
     const w = Math.min(L.cw * 3.1, 120), x = Math.max(12 + w / 2, L.x(c));
-    g.fillStyle = '#222d31'; rr(g, x - w / 2, L.bldY0, w, L.bldY1 - L.bldY0, 6); g.fill();
-    g.strokeStyle = '#2f3d42'; g.stroke();
-    g.fillStyle = '#edf2f1'; g.font = '600 ' + Math.max(11, Math.min(15, w / 6)) + 'px ' + getComputedStyle(document.body).getPropertyValue('--sans');
-    g.textAlign = 'center'; g.fillText('Tenant ' + TEN[b], x, L.bldY0 + 20);
-    g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.fillStyle = '#7b898b';
-    g.fillText(sim.perBuildingDelivered[b] + ' today', x, L.bldY0 + 34);
+    g.fillStyle = '#ffffff'; rr(g, x - w / 2, L.bldY0, w, L.bldY1 - L.bldY0, 6); g.fill();
+    g.strokeStyle = '#d9dbd7'; g.stroke();
+    g.fillStyle = '#0f1111'; g.font = '600 ' + Math.max(11, Math.min(15, w / 6)) + 'px ' + getComputedStyle(document.body).getPropertyValue('--sans');
+    const narrow = w < 80;
+    g.textAlign = 'center'; g.fillText(narrow ? TEN[b] : 'Tenant ' + TEN[b], x, L.bldY0 + 20);
+    g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.fillStyle = '#7a7f7e';
+    g.fillText(narrow ? String(sim.perBuildingDelivered[b]) : sim.perBuildingDelivered[b] + ' today', x, L.bldY0 + 34);
     // tenant lift + shaft to the stratum
     const lx = L.x(c);
-    g.strokeStyle = '#3a4a50'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(lx, L.bldY1); g.lineTo(lx, L.yT - L.ch / 2); g.stroke(); g.setLineDash([]);
-    g.fillStyle = '#2d3a3f'; rr(g, lx - 9, L.tlY - 9, 18, 18, 4); g.fill(); g.strokeStyle = '#6cb6e0'; g.stroke();
-    g.fillStyle = '#6cb6e0'; g.fillText('lift ' + TEN[b], lx, L.tlY + 22);
+    g.strokeStyle = '#c9ccc8'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(lx, L.bldY1); g.lineTo(lx, L.yT - L.ch / 2); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#ffffff'; rr(g, lx - 9, L.tlY - 9, 18, 18, 4); g.fill(); g.strokeStyle = '#2f74a8'; g.stroke();
+    g.fillStyle = '#2f74a8'; g.fillText('lift ' + TEN[b], lx, L.tlY + 22);
     g.textAlign = 'left';
   });
   // stratum
   const yTop = L.yT - L.ch / 2;
-  g.fillStyle = 'rgba(9,13,15,0.85)'; rr(g, L.left - 4, yTop - 4, L.right - L.left + 8 + (L.liftX - L.right), L.ch + 8, 6); g.fill();
-  g.strokeStyle = '#6b7c80'; g.setLineDash([6, 4]); g.stroke(); g.setLineDash([]);
+  g.fillStyle = 'rgba(233,235,232,1)'; rr(g, L.left - 4, yTop - 4, L.right - L.left + 8 + (L.liftX - L.right), L.ch + 8, 6); g.fill();
+  g.strokeStyle = '#9aa09e'; g.setLineDash([6, 4]); g.stroke(); g.setLineDash([]);
   for (let i = 0; i < SETTINGS.CELL_COUNT; i++) {
     const x = L.left + i * L.cw;
     const isB = bays.has(i), isT = SETTINGS.BUILDING_CELLS.includes(i) || i === SETTINGS.HUB_CELL;
-    g.fillStyle = isB ? '#2f5a46' : isT ? '#1f2c30' : '#151d20';
+    g.fillStyle = isB ? '#d8ece2' : isT ? '#e3e5e1' : '#f0f1ee';
     rr(g, x + 1.5, yTop, L.cw - 3, L.ch, 3); g.fill();
-    if (isB) { g.fillStyle = '#2f5a46'; rr(g, x + 1.5, yTop + L.ch, L.cw - 3, L.ch * 0.95, 3); g.fill(); g.fillStyle = '#bdf2e0'; g.font = '600 10px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.textAlign = 'center'; g.fillText(bayLabel(i), x + L.cw / 2, yTop + L.ch * 1.95 - 5); }
-    if (buildMode && PASSING_CANDIDATES.includes(i)) { g.strokeStyle = '#8fd6b3'; g.setLineDash([2, 3]); rr(g, x + 1.5, yTop, L.cw - 3, L.ch * 1.95, 3); g.stroke(); g.setLineDash([]); }
-    g.fillStyle = '#7b898b'; g.font = '9.5px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.textAlign = 'center';
-    g.fillText(String(i), x + L.cw / 2, yTop - 8);
+    if (isB) { g.fillStyle = '#d8ece2'; rr(g, x + 1.5, yTop + L.ch, L.cw - 3, L.ch * 0.95, 3); g.fill(); g.fillStyle = '#14905f'; g.font = '600 10px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.textAlign = 'center'; if (L.cw >= 20) g.fillText(bayLabel(i), x + L.cw / 2, yTop + L.ch * 1.95 - 5); }
+    if (buildMode && PASSING_CANDIDATES.includes(i)) { g.strokeStyle = '#14905f'; g.setLineDash([2, 3]); rr(g, x + 1.5, yTop, L.cw - 3, L.ch * 1.95, 3); g.stroke(); g.setLineDash([]); }
+    g.fillStyle = '#7a7f7e'; g.font = '9.5px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.textAlign = 'center';
+    if (L.cw >= 22 || i % 4 === 0 || i === SETTINGS.HUB_CELL) g.fillText(String(i), x + L.cw / 2, yTop - 8);
   }
-  g.textAlign = 'left'; g.fillStyle = '#9fb0b2'; g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
-  g.fillText('STRATUM · one lane, 2.3 m below the plaza · rows numbered from the west', L.left, yTop + L.ch * 2.4);
+  g.textAlign = 'left'; g.fillStyle = '#5d6361'; g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  g.fillText(L.W < 600 ? 'STRATUM · one lane, 2.3 m down' : 'STRATUM · one lane, 2.3 m below the plaza · rows numbered from the west', L.left, yTop + L.ch * 2.4);
   // dock
-  g.fillStyle = '#1d272b'; rr(g, L.dockX, L.H * 0.16, L.dockW, L.padY(4) - L.H * 0.16 + 26, 8); g.fill();
-  g.fillStyle = '#9fb0b2'; g.fillText('DOCK', L.dockX + 6, L.H * 0.16 + 14);
-  for (let k = 0; k < SETTINGS.DOCK_CAPACITY; k++) { g.strokeStyle = '#3d6b78'; rr(g, L.padX - 10, L.padY(k) - 10, 20, 20, 3); g.stroke(); }
+  g.fillStyle = '#f6f6f4'; rr(g, L.dockX, L.H * 0.16, L.dockW, L.padY(4) - L.H * 0.16 + 26, 8); g.fill();
+  g.fillStyle = '#5d6361'; g.fillText('DOCK', L.dockX + 6, L.H * 0.16 + 14);
+  for (let k = 0; k < SETTINGS.DOCK_CAPACITY; k++) { g.strokeStyle = '#8fb7cf'; rr(g, L.padX - 10, L.padY(k) - 10, 20, 20, 3); g.stroke(); }
   // dock lift shaft
-  g.fillStyle = '#26343a'; rr(g, L.liftX - 11, L.padY(0) - 12, 22, L.yT - L.padY(0) + 12 + L.ch / 2, 5); g.fill();
-  g.strokeStyle = '#6cb6e0'; g.stroke();
-  g.save(); g.translate(L.liftX + 18, L.padY(0) + 4); g.rotate(Math.PI / 2); g.fillStyle = '#6cb6e0'; g.fillText('DOCK LIFT', 0, 0); g.restore();
-  g.strokeStyle = '#3a4a50'; g.beginPath(); g.moveTo(L.liftX - 11, L.yT); g.lineTo(L.right, L.yT); g.stroke();
+  g.fillStyle = '#eef4f8'; rr(g, L.liftX - 11, L.padY(0) - 12, 22, L.yT - L.padY(0) + 12 + L.ch / 2, 5); g.fill();
+  g.strokeStyle = '#2f74a8'; g.stroke();
+  if (L.W >= 600) { g.save(); g.translate(L.liftX + 18, L.padY(0) + 4); g.rotate(Math.PI / 2); g.fillStyle = '#2f74a8'; g.fillText('DOCK LIFT', 0, 0); g.restore(); }
+  g.strokeStyle = '#c9ccc8'; g.beginPath(); g.moveTo(L.liftX - 11, L.yT); g.lineTo(L.right, L.yT); g.stroke();
 
   // route for the tracked package
   const r = trackedRec(); const loc = r ? locate(r) : null;
@@ -1078,7 +1092,7 @@ function draw() {
     const p = Math.min(1, (sim.simMinutes - v.t0) / v.dur);
     const y = -30 + (L.padY(2) + 30) * p;
     const mine = r === v.rec;
-    g.fillStyle = mine ? '#8fd6b3' : '#9fb0b2'; rr(g, L.streetX + L.streetW * 0.18, y - 14, L.streetW * 0.34, 28, 4); g.fill();
+    g.fillStyle = mine ? '#14905f' : '#5d6361'; rr(g, L.streetX + L.streetW * 0.18, y - 14, L.streetW * 0.34, 28, 4); g.fill();
     if (mine) drawPin(g, L.streetX + L.streetW * 0.35, y - 20, 'On the van', clk(v.t0 + v.dur) + ' approx.');
   }
   // carts
@@ -1105,9 +1119,9 @@ function draw() {
     if (loc.kind === 'van' || loc.kind === 'dock') pts.push([L.liftX, L.padY(0)]);
     if (loc.kind !== 'trench') pts.push([L.liftX, L.yT]);
     pts.push([tx, L.yT], [tx, L.tlY]);
-    g.strokeStyle = 'rgba(143,214,179,0.85)'; g.lineWidth = 3; g.setLineDash([7, 6]); g.lineDashOffset = -performance.now() / 60;
+    g.strokeStyle = '#0f1111'; g.lineWidth = 3; g.setLineDash([7, 6]); g.lineDashOffset = -performance.now() / 60;
     g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.setLineDash([]); g.lineWidth = 1;
-    g.fillStyle = '#8fd6b3'; g.beginPath(); g.arc(tx, L.tlY, 6, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#14905f'; g.beginPath(); g.arc(tx, L.tlY, 6, 0, Math.PI * 2); g.fill();
     if (me && loc.kind !== 'van') {
       const pulse = (performance.now() / 900) % 1;
       g.strokeStyle = `rgba(143,214,179,${0.6 * (1 - pulse)})`; g.lineWidth = 2; g.beginPath(); g.arc(me.x, me.y, 8 + pulse * 16, 0, Math.PI * 2); g.stroke(); g.lineWidth = 1;
@@ -1117,14 +1131,14 @@ function draw() {
   }
   // curb overflow note
   const curb = sim.queue.length - SETTINGS.DOCK_CAPACITY;
-  if (curb > 0) { g.fillStyle = '#ff8a6b'; g.font = '600 11px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.fillText(curb + ' at the curb', L.streetX + 4, L.padY(0) - 18); }
-  if (sim.deadlocked) { g.fillStyle = 'rgba(255,138,107,0.95)'; g.font = '700 13px ' + getComputedStyle(document.body).getPropertyValue('--sans'); g.fillText('JAMMED · tap a row next to the jam with “Build bays” on', L.left, yTop - 24); }
+  if (curb > 0) { g.fillStyle = '#d1492b'; g.font = '600 11px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.fillText(curb + ' at the curb', L.streetX + 4, L.padY(0) - 18); }
+  if (sim.deadlocked) { g.fillStyle = 'rgba(209,73,43,0.95)'; g.font = '700 13px ' + getComputedStyle(document.body).getPropertyValue('--sans'); g.fillText('JAMMED · tap a row next to the jam with “Build bays” on', L.left, yTop - 24); }
 }
 function dot(g, x, y, kind, jam) {
-  const col = kind === 'me' ? '#8fd6b3' : kind === 'mail' ? '#f0c987' : kind === 'curb' ? '#ff8a6b' : '#5f8f7b';
+  const col = kind === 'me' ? '#14905f' : kind === 'mail' ? '#b97a1c' : kind === 'curb' ? '#d1492b' : '#9aa09e';
   g.fillStyle = col; g.beginPath(); g.arc(x, y, kind === 'me' ? 7.5 : 5.5, 0, Math.PI * 2); g.fill();
-  if (kind === 'me') { g.strokeStyle = '#0b2219'; g.lineWidth = 2; g.stroke(); g.lineWidth = 1; }
-  if (jam) { g.strokeStyle = '#ff8a6b'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 9, 0, Math.PI * 2); g.stroke(); g.lineWidth = 1; }
+  if (kind === 'me') { g.strokeStyle = '#ffffff'; g.lineWidth = 2; g.stroke(); g.lineWidth = 1; }
+  if (jam) { g.strokeStyle = '#d1492b'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 9, 0, Math.PI * 2); g.stroke(); g.lineWidth = 1; }
 }
 function drawPin(g, x, y, title, sub) {
   const mono = getComputedStyle(document.body).getPropertyValue('--mono'), sans = getComputedStyle(document.body).getPropertyValue('--sans');
@@ -1132,10 +1146,10 @@ function drawPin(g, x, y, title, sub) {
   const w = Math.max(w1, w2) + 20, h = 38;
   let bx = x - w / 2; bx = Math.max(4, Math.min(G.W - w - 4, bx));
   const by = Math.max(4, y - h - 10);
-  g.fillStyle = '#edf2f1'; rr(g, bx, by, w, h, 8); g.fill();
+  g.fillStyle = '#0f1111'; rr(g, bx, by, w, h, 8); g.fill();
   g.beginPath(); g.moveTo(Math.max(bx + 10, Math.min(bx + w - 10, x)) - 6, by + h); g.lineTo(Math.max(bx + 10, Math.min(bx + w - 10, x)) + 6, by + h); g.lineTo(x, by + h + 8); g.closePath(); g.fill();
-  g.fillStyle = '#0b2219'; g.font = '700 13px ' + sans; g.fillText(title, bx + 10, by + 16);
-  g.fillStyle = '#3f5552'; g.font = '10px ' + mono; g.fillText(sub, bx + 10, by + 30);
+  g.fillStyle = '#ffffff'; g.font = '700 13px ' + sans; g.fillText(title, bx + 10, by + 16);
+  g.fillStyle = '#c9ccc8'; g.font = '10px ' + mono; g.fillText(sub, bx + 10, by + 30);
 }
 cv.addEventListener('click', (ev) => {
   const L = G; if (!L) return;
@@ -1193,14 +1207,14 @@ function renderData() {
     const mx = Math.max(5, ...errs) * 1.08;
     const X = (v) => 110 + (v / mx) * (w - 130);
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Promised window versus actual delivery for each package">`;
-    for (let t = 0; t <= mx; t += mx > 40 ? 10 : 5) s += `<line x1="${X(t)}" x2="${X(t)}" y1="18" y2="${h - 16}" stroke="#1f292d"/><text x="${X(t)}" y="${h - 3}" fill="#7b898b" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace">${t}</text>`;
-    s += `<text x="${w - 6}" y="12" fill="#7b898b" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace">minutes after reaching the dock →</text>`;
+    for (let t = 0; t <= mx; t += mx > 40 ? 10 : 5) s += `<line x1="${X(t)}" x2="${X(t)}" y1="18" y2="${h - 16}" stroke="#ececea"/><text x="${X(t)}" y="${h - 3}" fill="#7a7f7e" font-size="10" text-anchor="middle" font-family="Geist Mono, monospace">${t}</text>`;
+    s += `<text x="${w - 6}" y="12" fill="#7a7f7e" font-size="10" text-anchor="end" font-family="Geist Mono, monospace">minutes after reaching the dock →</text>`;
     B.forEach((r, i) => {
       const y = 26 + i * rowH; const b = r.band0;
-      s += `<text x="4" y="${y + 4}" fill="#b3bfbf" font-size="10.5" font-family="IBM Plex Mono, monospace">${esc(r.label)} ${TEN[r.dest]}</text>`;
-      s += `<line x1="${X(b.p10 - r.tDock)}" x2="${X(b.p90 - r.tDock)}" y1="${y}" y2="${y}" stroke="${r.hit ? 'rgba(143,214,179,0.55)' : 'rgba(255,138,107,0.6)'}" stroke-width="7" stroke-linecap="round"/>`;
-      s += `<circle cx="${X(r.tDeliv - r.tDock)}" cy="${y}" r="4.2" fill="${r.hit ? '#8fd6b3' : '#ff8a6b'}" stroke="#0d1214" stroke-width="1.5"/>`;
-      if (b.jams) s += `<text x="${w - 4}" y="${y + 4}" fill="#ff8a6b" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace">${b.jams} jam futures</text>`;
+      s += `<text x="4" y="${y + 4}" fill="#3d4241" font-size="10.5" font-family="Geist Mono, monospace">${esc(r.label)} ${TEN[r.dest]}</text>`;
+      s += `<line x1="${X(b.p10 - r.tDock)}" x2="${X(b.p90 - r.tDock)}" y1="${y}" y2="${y}" stroke="${r.hit ? 'rgba(20,144,95,0.55)' : 'rgba(209,73,43,0.6)'}" stroke-width="7" stroke-linecap="round"/>`;
+      s += `<circle cx="${X(r.tDeliv - r.tDock)}" cy="${y}" r="4.2" fill="${r.hit ? '#14905f' : '#d1492b'}" stroke="#ffffff" stroke-width="1.5"/>`;
+      if (b.jams) s += `<text x="${w - 4}" y="${y + 4}" fill="#d1492b" font-size="10" text-anchor="end" font-family="Geist Mono, monospace">${b.jams} jam futures</text>`;
     });
     s += '</svg>';
     $('calChart').innerHTML = s;
@@ -1217,12 +1231,12 @@ function renderData() {
     const w = 640, h = 200, mx = Math.max(4, ...del, ...arr) * 1.15, bw = (w - 50) / bins;
     const Y = (v) => h - 24 - (v / mx) * (h - 44);
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Deliveries and dock arrivals per 15 minutes">`;
-    for (let v = 0; v <= mx; v += Math.max(1, Math.ceil(mx / 5))) s += `<line x1="40" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#1f292d"/><text x="34" y="${Y(v) + 3}" fill="#7b898b" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace">${v}</text>`;
-    del.forEach((v, i) => { s += `<rect x="${44 + i * bw + 1}" y="${Y(v)}" width="${Math.max(1, bw - 2)}" height="${h - 24 - Y(v)}" fill="#3f7a63" rx="2"/>`; });
+    for (let v = 0; v <= mx; v += Math.max(1, Math.ceil(mx / 5))) s += `<line x1="40" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ececea"/><text x="34" y="${Y(v) + 3}" fill="#7a7f7e" font-size="10" text-anchor="end" font-family="Geist Mono, monospace">${v}</text>`;
+    del.forEach((v, i) => { s += `<rect x="${44 + i * bw + 1}" y="${Y(v)}" width="${Math.max(1, bw - 2)}" height="${h - 24 - Y(v)}" fill="#14905f" rx="2"/>`; });
     let path = ''; arr.forEach((v, i) => { path += (i ? 'L' : 'M') + (44 + (i + 0.5) * bw) + ' ' + Y(v); });
-    s += `<path d="${path}" fill="none" stroke="#f0c987" stroke-width="2"/>`;
-    for (let i = 0; i < bins; i += Math.max(1, Math.round(bins / 8))) s += `<text x="${44 + i * bw}" y="${h - 6}" fill="#7b898b" font-size="10" font-family="IBM Plex Mono, monospace">${clk(i * 15)}</text>`;
-    s += `<text x="${w - 4}" y="12" fill="#7b898b" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace"><tspan fill="#8fd6b3">■ delivered</tspan>   <tspan fill="#f0c987">— reached the dock</tspan></text></svg>`;
+    s += `<path d="${path}" fill="none" stroke="#b97a1c" stroke-width="2"/>`;
+    for (let i = 0; i < bins; i += Math.max(1, Math.round(bins / 8))) s += `<text x="${44 + i * bw}" y="${h - 6}" fill="#7a7f7e" font-size="10" font-family="Geist Mono, monospace">${clk(i * 15)}</text>`;
+    s += `<text x="${w - 4}" y="12" fill="#7a7f7e" font-size="10" text-anchor="end" font-family="Geist Mono, monospace"><tspan fill="#14905f">■ delivered</tspan>   <tspan fill="#b97a1c">— reached the dock</tspan></text></svg>`;
     $('flowChart').innerHTML = s;
   }
   // little's law
@@ -1277,7 +1291,7 @@ $('btnCsv').addEventListener('click', async () => {
    ============================================================ */
 const CAP = {"modes": [{"key": "noCtrl", "name": "Two-way, no controller", "note": "the A2 toy's rules \u00b7 at 16/hr it jams in ~2.7 h", "clean": 3, "ceil": 3}, {"key": "ctrl4", "name": "Controller, only 4 bays", "note": "bays miss some of the 8 choke points", "clean": 0, "ceil": 0, "fail": "jams at any load \u00b7 not a working mode"}, {"key": "sep", "name": "Mail moved to off-hours", "note": "one direction at a time, no controller", "clean": 17, "ceil": 30}, {"key": "ctrl", "name": "Controller + 10 bays", "note": "as designed: head-on carts waved past at a bay", "clean": 18, "ceil": 29}, {"key": "ctrl12", "name": "Controller + 12 bays", "note": "every possible bay built", "clean": 19, "ceil": 31}, {"key": "ctrlFast", "name": "Controller + 12 bays + 1-min lift", "note": "a lift twice as fast", "clean": 39, "ceil": 58}], "scales": [{"name": "1 building", "note": "Tenant A, next to the dock", "note2": "no controller", "clean": 16, "ceil": 29}, {"name": "2 buildings", "note": "A + B", "note2": "no controller", "clean": 13, "ceil": 13}, {"name": "3 buildings", "note": "A + B + C", "note2": "no controller", "clean": 7, "ceil": 7}, {"name": "4 buildings", "note": "the full block", "note2": "no controller", "clean": 3, "ceil": 3}, {"name": "4 buildings", "note": "+ controller", "note2": "+ 10 bays", "clean": 18, "ceil": 29, "hi": true}, {"name": "4 buildings", "note": "+ 12 bays", "note2": "+ 1-min lift", "clean": 39, "ceil": 58}], "swarm": [{"flow": "16/hr", "n": 6, "note": "two-way: jams", "jam": true}, {"flow": "28/hr", "n": 3, "note": "2-min lift"}, {"flow": "55/hr", "n": 6, "note": "1-min lift"}, {"flow": "110/hr", "n": 9, "note": "30 s lift"}, {"flow": "221/hr", "n": 15, "note": "15 s lift"}, {"flow": "304/hr", "n": 18, "note": "lane's limit"}]};
 function bar(x, y, w, h, c, extra) { return `<rect x="${x}" y="${y}" width="${Math.max(0, w)}" height="${h}" rx="3" fill="${c}" ${extra || ''}/>`; }
-function txt(x, y, s, o) { o = o || {}; return `<text x="${x}" y="${y}" fill="${o.c || '#b3bfbf'}" font-size="${o.s || 11}" font-weight="${o.w || 400}" text-anchor="${o.a || 'start'}" font-family="${o.f === 'm' ? 'IBM Plex Mono, monospace' : 'IBM Plex Sans, system-ui, sans-serif'}">${s}</text>`; }
+function txt(x, y, s, o) { o = o || {}; return `<text x="${x}" y="${y}" fill="${o.c || '#3d4241'}" font-size="${o.s || 11}" font-weight="${o.w || 400}" text-anchor="${o.a || 'start'}" font-family="${o.f === 'm' ? 'Geist Mono, monospace' : 'Geist, system-ui, sans-serif'}">${s}</text>`; }
 function renderExplain() {
   const H16 = 16;
   const C = CAP;
@@ -1295,25 +1309,25 @@ function renderExplain() {
   {
     const w = 980, h = 300; let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Flow of one package from van to tenant with capacity per step">`;
     const st = [
-      ['Van at the curb', 'street', '3–8 min drive', 'any', '#9fb0b2'],
-      ['Loading dock', 'street level', '5 pads to wait on', '5 waiting', '#9fb0b2'],
-      ['Dock lift', 'down one storey', `${P.cycle.v} min per cart`, `${Math.round(60 / P.cycle.v)} / hr`, '#ff8a6b'],
-      ['The stratum', '−2.3 m, one lane, 17 rows', '9 s per 2.3 m row', '~300 / hr one way', '#8fd6b3'],
-      ['Tenant lift', '×4, up to the lobby', 'not simulated', 'not tested', '#6cb6e0'],
-      ['Tenant lobby', 'A · B · C · D', 'delivered', '', '#9fb0b2'],
+      ['Van at the curb', 'street', '3–8 min drive', 'any', '#5d6361'],
+      ['Loading dock', 'street level', '5 pads to wait on', '5 waiting', '#5d6361'],
+      ['Dock lift', 'down one storey', `${P.cycle.v} min per cart`, `${Math.round(60 / P.cycle.v)} / hr`, '#d1492b'],
+      ['The stratum', '−2.3 m, one lane, 17 rows', '9 s per 2.3 m row', '~300 / hr one way', '#14905f'],
+      ['Tenant lift', '×4, up to the lobby', 'not simulated', 'not tested', '#2f74a8'],
+      ['Tenant lobby', 'A · B · C · D', 'delivered', '', '#5d6361'],
     ];
     const bw = 140, gap = (w - 20 - bw * st.length) / (st.length - 1);
     // ground line
-    s += `<line x1="0" x2="${w}" y1="150" y2="150" stroke="#3a4a50" stroke-dasharray="4 4"/>` + txt(w - 4, 144, 'street level ↑', { s: 10, f: 'm', c: '#7b898b', a: 'end' }) + txt(w - 4, 166, 'below the plaza ↓', { s: 10, f: 'm', c: '#7b898b', a: 'end' });
+    s += `<line x1="0" x2="${w}" y1="150" y2="150" stroke="#c9ccc8" stroke-dasharray="4 4"/>` + txt(w - 4, 144, 'street level ↑', { s: 10, f: 'm', c: '#7a7f7e', a: 'end' }) + txt(w - 4, 166, 'below the plaza ↓', { s: 10, f: 'm', c: '#7a7f7e', a: 'end' });
     st.forEach((d, i) => {
       const x = 10 + i * (bw + gap); const below = i === 3; const y = below ? 176 : i === 2 ? 120 : 60;
-      if (i < st.length - 1) { const x2 = 10 + (i + 1) * (bw + gap); const y2 = (i + 1) === 3 ? 176 : (i + 1) === 2 ? 120 : 60; s += `<path d="M${x + bw} ${y + 34} C ${x + bw + gap / 2} ${y + 34}, ${x2 - gap / 2} ${y2 + 34}, ${x2} ${y2 + 34}" fill="none" stroke="#3f7a63" stroke-width="3" marker-end="url(#ah)"/>`; }
-      s += `<rect x="${x}" y="${y}" width="${bw}" height="68" rx="10" fill="#1a2327" stroke="${d[4]}" stroke-width="${i === 2 ? 2.5 : 1.2}"/>`;
-      s += txt(x + 10, y + 20, d[0], { c: '#edf2f1', w: 600, s: 13 }) + txt(x + 10, y + 36, d[1], { s: 10.5, c: '#7b898b' }) + txt(x + 10, y + 54, d[2], { s: 10.5, f: 'm' });
+      if (i < st.length - 1) { const x2 = 10 + (i + 1) * (bw + gap); const y2 = (i + 1) === 3 ? 176 : (i + 1) === 2 ? 120 : 60; s += `<path d="M${x + bw} ${y + 34} C ${x + bw + gap / 2} ${y + 34}, ${x2 - gap / 2} ${y2 + 34}, ${x2} ${y2 + 34}" fill="none" stroke="#14905f" stroke-width="3" marker-end="url(#ah)"/>`; }
+      s += `<rect x="${x}" y="${y}" width="${bw}" height="68" rx="10" fill="#f6f6f4" stroke="${d[4]}" stroke-width="${i === 2 ? 2.5 : 1.2}"/>`;
+      s += txt(x + 10, y + 20, d[0], { c: '#0f1111', w: 600, s: 13 }) + txt(x + 10, y + 36, d[1], { s: 10.5, c: '#7a7f7e' }) + txt(x + 10, y + 54, d[2], { s: 10.5, f: 'm' });
       if (d[3]) s += txt(x + bw / 2, y + 88, d[3], { s: 12, w: 600, a: 'middle', c: d[4], f: 'm' });
     });
-    s += `<defs><marker id="ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3f7a63"/></marker></defs>`;
-    s += txt(10 + 2 * (bw + gap) + bw / 2, 112, '▼ narrowest step', { a: 'middle', c: '#ff8a6b', s: 11, w: 600 });
+    s += `<defs><marker id="ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#14905f"/></marker></defs>`;
+    s += txt(10 + 2 * (bw + gap) + bw / 2, 112, '▼ narrowest step', { a: 'middle', c: '#d1492b', s: 11, w: 600 });
     s += txt(10, 286, 'Outgoing mail runs the other way through the same lane, 3 carts an hour from each building. That two-way traffic is what makes passing bays necessary.', { s: 12 });
     s += '</svg>'; $('flowSvg').innerHTML = s;
   }
@@ -1322,14 +1336,14 @@ function renderExplain() {
     const M = C.modes; const w = 980, rowH = 46, h = 50 + M.length * rowH; const mx = Math.max(...M.map((m) => m.ceil)) * H16 * 1.05;
     const X = (v) => 300 + (v / mx) * (w - 330);
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Carts per 16-hour day for each operating mode">`;
-    for (let v = 0; v <= mx; v += 200) s += `<line x1="${X(v)}" x2="${X(v)}" y1="20" y2="${h - 18}" stroke="#1f292d"/>` + txt(X(v), h - 4, String(v), { s: 10, a: 'middle', f: 'm', c: '#7b898b' });
-    s += txt(w - 4, 12, 'carts per 16-hour day →', { s: 10, a: 'end', f: 'm', c: '#7b898b' });
+    for (let v = 0; v <= mx; v += 200) s += `<line x1="${X(v)}" x2="${X(v)}" y1="20" y2="${h - 18}" stroke="#ececea"/>` + txt(X(v), h - 4, String(v), { s: 10, a: 'middle', f: 'm', c: '#7a7f7e' });
+    s += txt(w - 4, 12, 'carts per 16-hour day →', { s: 10, a: 'end', f: 'm', c: '#7a7f7e' });
     M.forEach((m, i) => {
       const y = 28 + i * rowH;
-      s += txt(4, y + 12, m.name, { c: '#edf2f1', w: 600, s: 12.5 }) + txt(4, y + 28, m.note, { s: 10.5, c: '#7b898b' });
-      if (m.ceil === 0) { s += txt(X(0) + 4, y + 20, m.fail || 'jams · not a working mode', { c: '#ff8a6b', s: 12, w: 600 }); return; }
-      s += bar(X(0), y + 4, X(m.ceil * H16) - X(0), 22, 'rgba(143,214,179,0.22)') + bar(X(0), y + 4, X(m.clean * H16) - X(0), 22, m.key === 'ctrl' ? '#8fd6b3' : '#3f7a63');
-      s += txt(X(m.ceil * H16) + 6, y + 20, m.clean === m.ceil ? String(m.ceil * H16) : `${m.clean * H16}–${m.ceil * H16}`, { f: 'm', s: 11.5, c: '#edf2f1' });
+      s += txt(4, y + 12, m.name, { c: '#0f1111', w: 600, s: 12.5 }) + txt(4, y + 28, m.note, { s: 10.5, c: '#7a7f7e' });
+      if (m.ceil === 0) { s += txt(X(0) + 4, y + 20, m.fail || 'jams · not a working mode', { c: '#d1492b', s: 12, w: 600 }); return; }
+      s += bar(X(0), y + 4, X(m.ceil * H16) - X(0), 22, 'rgba(20,144,95,0.22)') + bar(X(0), y + 4, X(m.clean * H16) - X(0), 22, m.key === 'ctrl' ? '#14905f' : '#14905f');
+      s += txt(X(m.ceil * H16) + 6, y + 20, m.clean === m.ceil ? String(m.ceil * H16) : `${m.clean * H16}–${m.ceil * H16}`, { f: 'm', s: 11.5, c: '#0f1111' });
     });
     s += '</svg>'; $('daySvg').innerHTML = s;
   }
@@ -1338,45 +1352,45 @@ function renderExplain() {
     const S = C.scales; const w = 980, h = 290; const mx = Math.max(...S.map((m) => m.ceil)) * H16 * 1.1;
     const bw = (w - 60) / S.length; const Y = (v) => 230 - (v / mx) * 190;
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Carts per day at intermediate scales">`;
-    for (let v = 0; v <= mx; v += 200) s += `<line x1="44" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#1f292d"/>` + txt(38, Y(v) + 3, String(v), { s: 10, a: 'end', f: 'm', c: '#7b898b' });
+    for (let v = 0; v <= mx; v += 200) s += `<line x1="44" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ececea"/>` + txt(38, Y(v) + 3, String(v), { s: 10, a: 'end', f: 'm', c: '#7a7f7e' });
     S.forEach((m, i) => {
       const x = 52 + i * bw, bx = x + bw * 0.18, bwid = bw * 0.64;
-      s += bar(bx, Y(m.ceil * H16), bwid, 230 - Y(m.ceil * H16), 'rgba(143,214,179,0.22)') + bar(bx, Y(m.clean * H16), bwid, 230 - Y(m.clean * H16), m.hi ? '#8fd6b3' : '#3f7a63');
-      s += txt(x + bw / 2, Y(m.ceil * H16) - 6, m.clean === m.ceil ? String(m.ceil * H16) : `${m.clean * H16}–${m.ceil * H16}`, { a: 'middle', f: 'm', s: 10.5, c: '#edf2f1' });
-      s += txt(x + bw / 2, 248, m.name, { a: 'middle', s: 11.5, c: '#edf2f1', w: 600 });
-      s += txt(x + bw / 2, 264, m.note, { a: 'middle', s: 10, c: '#7b898b' });
-      if (m.note2) s += txt(x + bw / 2, 278, m.note2, { a: 'middle', s: 10, c: '#7b898b' });
+      s += bar(bx, Y(m.ceil * H16), bwid, 230 - Y(m.ceil * H16), 'rgba(20,144,95,0.22)') + bar(bx, Y(m.clean * H16), bwid, 230 - Y(m.clean * H16), m.hi ? '#14905f' : '#14905f');
+      s += txt(x + bw / 2, Y(m.ceil * H16) - 6, m.clean === m.ceil ? String(m.ceil * H16) : `${m.clean * H16}–${m.ceil * H16}`, { a: 'middle', f: 'm', s: 10.5, c: '#0f1111' });
+      s += txt(x + bw / 2, 248, m.name, { a: 'middle', s: 11.5, c: '#0f1111', w: 600 });
+      s += txt(x + bw / 2, 264, m.note, { a: 'middle', s: 10, c: '#7a7f7e' });
+      if (m.note2) s += txt(x + bw / 2, 278, m.note2, { a: 'middle', s: 10, c: '#7a7f7e' });
     });
-    s += txt(46, 14, 'carts per 16-hour day', { s: 10, f: 'm', c: '#7b898b' });
+    s += txt(46, 14, 'carts per 16-hour day', { s: 10, f: 'm', c: '#7a7f7e' });
     s += '</svg>'; $('scaleSvg').innerHTML = s;
   }
   // 4 · plenum
   {
     const w = 480, h = 300, base = 262, k = 92; // px per metre, everything to one scale
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Robot height compared with plenum depths">`;
-    s += `<line x1="0" x2="${w}" y1="${base}" y2="${base}" stroke="#3a4a50"/>`;
-    const items = [['Office raised floor', 0.07, '#6cb6e0', '41–70 mm'], ['Data-centre floor', 1.0, '#6cb6e0', '0.8–1.0 m'], ['Robot + load', 1.05, '#8fd6b3', '1.05 m'], ['The stratum', 2.3, '#9fb0b2', '2.3 m clear']];
+    s += `<line x1="0" x2="${w}" y1="${base}" y2="${base}" stroke="#c9ccc8"/>`;
+    const items = [['Office raised floor', 0.07, '#2f74a8', '41–70 mm'], ['Data-centre floor', 1.0, '#2f74a8', '0.8–1.0 m'], ['Robot + load', 1.05, '#14905f', '1.05 m'], ['The stratum', 2.3, '#5d6361', '2.3 m clear']];
     items.forEach((it, i) => {
       const x = 30 + i * 110, hh = Math.max(3, it[1] * k);
       s += `<rect x="${x}" y="${base - hh}" width="70" height="${hh}" rx="4" fill="${it[2]}" fill-opacity="${i === 2 ? 0.9 : 0.3}" stroke="${it[2]}"/>`;
-      s += txt(x + 35, base - hh - (i === 1 ? 14 : 8), it[3], { a: 'middle', f: 'm', s: 11, c: '#edf2f1' }) + txt(x + 35, base + 16, it[0], { a: 'middle', s: 10.5 });
+      s += txt(x + 35, base - hh - (i === 1 ? 14 : 8), it[3], { a: 'middle', f: 'm', s: 11, c: '#0f1111' }) + txt(x + 35, base + 16, it[0], { a: 'middle', s: 10.5 });
     });
-    s += `<line x1="20" x2="${w - 10}" y1="${base - 1.05 * k}" y2="${base - 1.05 * k}" stroke="#8fd6b3" stroke-dasharray="4 4" stroke-opacity="0.7"/>` + txt(24, base - 1.05 * k - 26, 'robot height ↓', { s: 10, c: '#8fd6b3', f: 'm' });
+    s += `<line x1="20" x2="${w - 10}" y1="${base - 1.05 * k}" y2="${base - 1.05 * k}" stroke="#14905f" stroke-dasharray="4 4" stroke-opacity="0.7"/>` + txt(24, base - 1.05 * k - 26, 'robot height ↓', { s: 10, c: '#14905f', f: 'm' });
     s += '</svg>'; $('plenumSvg').innerHTML = s;
   }
   // 5 · swarm
   {
     const W = C.swarm; const w = 480, h = 300; const mx = 20; const Y = (v) => 240 - (v / mx) * 200; const bw = (w - 60) / W.length;
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Robots in the lane at once at increasing flow">`;
-    for (let v = 0; v <= mx; v += 5) s += `<line x1="40" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#1f292d"/>` + txt(34, Y(v) + 3, String(v), { s: 10, a: 'end', f: 'm', c: '#7b898b' });
-    s += `<line x1="40" x2="${w}" y1="${Y(17)}" y2="${Y(17)}" stroke="#7b898b" stroke-dasharray="3 3"/>` + txt(44, Y(17) - 5, '17 rows in the lane', { s: 10, f: 'm', c: '#7b898b' });
+    for (let v = 0; v <= mx; v += 5) s += `<line x1="40" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ececea"/>` + txt(34, Y(v) + 3, String(v), { s: 10, a: 'end', f: 'm', c: '#7a7f7e' });
+    s += `<line x1="40" x2="${w}" y1="${Y(17)}" y2="${Y(17)}" stroke="#7a7f7e" stroke-dasharray="3 3"/>` + txt(44, Y(17) - 5, '17 rows in the lane', { s: 10, f: 'm', c: '#7a7f7e' });
     W.forEach((m, i) => {
       const x = 48 + i * bw;
-      s += bar(x + bw * 0.2, Y(m.n), bw * 0.6, 240 - Y(m.n), m.jam ? '#ff8a6b' : '#8fd6b3');
-      s += txt(x + bw / 2, Y(m.n) - 6, String(m.n), { a: 'middle', f: 'm', s: 11, c: '#edf2f1' });
-      s += txt(x + bw / 2, 256, m.flow, { a: 'middle', f: 'm', s: 10.5, c: '#edf2f1' }) + txt(x + bw / 2, 270, m.note, { a: 'middle', s: 9.5, c: '#7b898b' });
+      s += bar(x + bw * 0.2, Y(m.n), bw * 0.6, 240 - Y(m.n), m.jam ? '#d1492b' : '#14905f');
+      s += txt(x + bw / 2, Y(m.n) - 6, String(m.n), { a: 'middle', f: 'm', s: 11, c: '#0f1111' });
+      s += txt(x + bw / 2, 256, m.flow, { a: 'middle', f: 'm', s: 10.5, c: '#0f1111' }) + txt(x + bw / 2, 270, m.note, { a: 'middle', s: 9.5, c: '#7a7f7e' });
     });
-    s += txt(44, 14, 'most robots in the lane at once', { s: 10, f: 'm', c: '#7b898b' }) + txt(44, 292, 'carts per hour, one direction (outgoing mail off)', { s: 10, f: 'm', c: '#7b898b' });
+    s += txt(44, 14, 'most robots in the lane at once', { s: 10, f: 'm', c: '#7a7f7e' }) + txt(44, 292, 'carts per hour, one direction (outgoing mail off)', { s: 10, f: 'm', c: '#7a7f7e' });
     s += '</svg>'; $('swarmSvg').innerHTML = s;
   }
   $('howKnow').innerHTML = `<p>Every bar comes from the simulation under the map: the same rows, bays, dock lift and jam rules as the A3 toy, with random arrivals. For each setting we ran <b>10 random 8-hour shifts</b> at rising arrival rates. The solid bar is the highest rate where at least 8 of the 10 shifts never spilled a cart onto the curb and never jammed; the pale bar is the highest rate where the dock queue stayed bounded. Days assume <b>16 operating hours</b> <span class="tag a">assumed</span>.</p>

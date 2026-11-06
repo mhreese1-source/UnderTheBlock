@@ -6,16 +6,16 @@
 <title>UnderTheBlock Field Kit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
 <style>
   /* Layout: a phone-first field instrument. Sticky bar with the four jobs (Count, Lift, Results, Contract),
      one big tap target per job, results laid out as the A3 evidence panel. One deliberate dark look shared
      with the UnderTheBlock toy: cool ink, mint for measured, amber for the toy's assumed values. */
   :root {
-    color-scheme: dark;
-    --bg: #0d1214; --bg2: #090d0f; --panel: #141b1e; --panel2: #1a2327; --rule: #2a373c; --rule2: #1f292d;
-    --text: #edf2f1; --body: #b3bfbf; --dim: #7b898b; --accent: #8fd6b3; --accent-ink: #0b2219;
-    --amber: #f0c987; --warn: #ff8a6b; --blue: #4fa7d6; --ok: #9de08a;
+    color-scheme: light;
+    --bg: #ffffff; --bg2: #f4f4f2; --panel: #ffffff; --panel2: #f6f6f4; --rule: #e1e2df; --rule2: #ececea;
+    --text: #0f1111; --body: #3d4241; --dim: #7a7f7e; --accent: #14905f; --accent-ink: #ffffff;
+    --amber: #b97a1c; --warn: #d1492b; --blue: #2f74a8; --ok: #1f8a4c;
     --display: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
     --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -30,7 +30,7 @@
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
   /* bar */
-  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: rgba(13,18,20,0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule2); }
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule2); }
   .bar-in { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 14px; min-height: 58px; flex-wrap: wrap;
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 8px; }
   .brand { display: flex; align-items: center; gap: 9px; flex: none; }
@@ -65,15 +65,15 @@
   textarea { min-height: 70px; resize: vertical; line-height: 1.45; }
   input[readonly], textarea[readonly] { color: var(--body); border-style: dashed; }
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--panel2); color: var(--text); border: 1px solid var(--rule); border-radius: 9px; padding: 10px 14px; font-size: 14px; font-weight: 500; cursor: pointer; min-height: 42px; }
-  .btn:hover { border-color: #3d4d53; }
+  .btn:hover { border-color: #c9ccc8; }
   .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-  .btn.warn { color: var(--warn); border-color: rgba(255,138,107,0.45); }
+  .btn.warn { color: var(--warn); border-color: rgba(209,73,43,0.45); }
   .btn.ghost { background: transparent; }
   .btn.small { min-height: 32px; padding: 5px 10px; font-size: 12.5px; border-radius: 7px; }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .note { font-size: 12.5px; color: var(--dim); line-height: 1.5; }
-  .banner { border: 1px solid rgba(240,201,135,0.4); background: rgba(240,201,135,0.07); color: var(--amber); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 12px; }
-  .banner.ex { border-color: rgba(79,167,214,0.5); background: rgba(79,167,214,0.08); color: #9ccbe6; }
+  .banner { border: 1px solid rgba(185,122,28,0.4); background: rgba(185,122,28,0.07); color: var(--amber); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 12px; }
+  .banner.ex { border-color: rgba(47,116,168,0.5); background: rgba(47,116,168,0.08); color: #2f74a8; }
 
   /* count view */
   .live { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
@@ -86,8 +86,8 @@
   .bigtap { width: 100%; min-height: 108px; border-radius: 16px; border: 0; background: var(--accent); color: var(--accent-ink); font-family: var(--display); font-size: 30px; font-weight: 700; cursor: pointer; display: grid; place-items: center; line-height: 1.1; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
   .bigtap small { display: block; font-family: var(--sans); font-size: 13px; font-weight: 500; opacity: 0.8; }
   .bigtap:active { transform: scale(0.99); filter: brightness(1.08); }
-  .bigtap.amber { background: var(--amber); color: #2a1e08; }
-  .bigtap.blue { background: var(--blue); color: #06202f; }
+  .bigtap.amber { background: var(--amber); color: #ffffff; }
+  .bigtap.blue { background: var(--blue); color: #ffffff; }
   .stepper { display: flex; align-items: center; gap: 6px; }
   .stepper input { width: 70px; text-align: center; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -110,9 +110,9 @@
 
   /* results */
   .tag { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
-  .tag.m { color: var(--accent); border-color: rgba(143,214,179,0.45); }
-  .tag.a { color: var(--warn); border-color: rgba(255,138,107,0.45); }
-  .tag.s { color: var(--amber); border-color: rgba(240,201,135,0.45); }
+  .tag.m { color: var(--accent); border-color: rgba(20,144,95,0.45); }
+  .tag.a { color: var(--warn); border-color: rgba(209,73,43,0.45); }
+  .tag.s { color: var(--amber); border-color: rgba(185,122,28,0.45); }
   .big { font-family: var(--mono); font-size: 26px; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.15; }
   .big.toy { color: var(--amber); } .big.meas { color: var(--accent); }
   .vsrow { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--rule2); }
@@ -123,7 +123,7 @@
   .check { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--panel2); border: 1px solid var(--rule2); border-radius: 10px; padding: 10px 12px; }
   .check .mk { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-weight: 700; font-size: 14px; border: 1px solid var(--rule); color: var(--dim); }
   .check.ok .mk { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .check.no .mk { color: var(--warn); border-color: rgba(255,138,107,0.5); }
+  .check.no .mk { color: var(--warn); border-color: rgba(209,73,43,0.5); }
   .check b { color: var(--text); font-weight: 600; }
   .tablewrap { overflow-x: auto; border: 1px solid var(--rule2); border-radius: 10px; margin-top: 10px; }
   table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -138,7 +138,7 @@
   .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 9px; overflow: hidden; }
   .seg button { background: var(--panel2); color: var(--body); border: 0; padding: 8px 12px; font-size: 13px; cursor: pointer; }
   .seg button + button { border-left: 1px solid var(--rule); }
-  .seg button.on { background: #e9efed; color: #0d1214; font-weight: 600; }
+  .seg button.on { background: #0f1111; color: #ffffff; font-weight: 600; }
   details.raw summary { cursor: pointer; color: var(--accent); font-size: 13.5px; }
   .lock { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
   .logitem { border-top: 1px solid var(--rule2); padding: 10px 0; font-size: 13.5px; line-height: 1.5; }
@@ -146,14 +146,27 @@
   .logitem .when { font-family: var(--mono); font-size: 11px; color: var(--dim); }
 
   /* photo clock */
-  .photoclock { position: fixed; inset: 0; z-index: 100; background: #f4f6f5; color: #0d1214; display: grid; place-items: center; text-align: center;
+  .photoclock { position: fixed; inset: 0; z-index: 100; background: #f4f6f5; color: #ffffff; display: grid; place-items: center; text-align: center;
     padding: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); cursor: pointer; }
   .photoclock .pt { font-family: var(--mono); font-size: clamp(56px, 18vw, 150px); font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
   .photoclock .pd { font-family: var(--mono); font-size: clamp(16px, 4vw, 26px); margin-top: 14px; }
   .photoclock .ps { font-family: var(--display); font-size: clamp(18px, 4.5vw, 30px); font-weight: 600; margin-top: 18px; }
   .photoclock .pf { font-size: 13px; color: #55625f; margin-top: 22px; }
-  .ruler { margin: 22px auto 0; width: min(90vw, 600px); height: 34px; position: relative; border-top: 2px solid #0d1214; }
-  .ruler i { position: absolute; top: 0; width: 1.5px; background: #0d1214; }
+  .ruler { margin: 22px auto 0; width: min(90vw, 600px); height: 34px; position: relative; border-top: 2px solid #ffffff; }
+  .ruler i { position: absolute; top: 0; width: 1.5px; background: #ffffff; }
+
+  /* ===== light pill theme, shared with the project homepage ===== */
+  :root { --display: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif; --sans: "Geist", "Helvetica Neue", Arial, system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace; }
+  body { letter-spacing: -0.005em; }
+  h1, h2, .wordmark, .eta, .stat .sv, .vcard .a, .big { font-weight: 500 !important; letter-spacing: -0.03em; }
+  h3 { font-weight: 550; letter-spacing: -0.01em; }
+  .btn, .cta, .seg, .seg button, .tabs, .tabs a, .pill, .badge, .chip, .tag, .tenants button, select, input[type=number], input[type=text] { border-radius: 999px !important; }
+  textarea { border-radius: 14px !important; }
+  .card, .panel, section.demo, .sp-group, .kpis, .tablewrap, .vcard, .found, .law, .ping, .honest, details.hood, .hero-stats, .stage .figure, .check, .term, dl.terms .term, .mapcard { border-radius: 18px !important; }
+  .card, section.demo, .vcard, .mapcard { box-shadow: 0 1px 2px rgba(15,17,17,0.04), 0 10px 30px rgba(15,17,17,0.05); border-color: #ececea !important; }
+  .btn.primary, .btn.go, .cta.primary, .bigtap:not(.amber):not(.blue) { background: #0f1111 !important; color: #ffffff !important; border-color: #0f1111 !important; }
+  .bigtap { border-radius: 22px !important; }
+  .eyebrow, .label, .partlabel { letter-spacing: 0.04em; }
 </style>
 
 </head>
@@ -161,7 +174,7 @@
 <header class="bar">
   <div class="bar-in">
     <div class="brand">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="7" fill="#1a2327" stroke="#2a373c"/><path d="M5 12h22" stroke="#7b898b" stroke-width="1.6"/><rect x="5" y="17" width="22" height="6" rx="1.5" fill="none" stroke="#8fd6b3" stroke-width="1.6"/><rect x="8" y="18.6" width="4" height="2.8" rx=".6" fill="#8fd6b3"/><rect x="19" y="18.6" width="4" height="2.8" rx=".6" fill="#d8ab5a"/><path d="M24 12v5" stroke="#8fd6b3" stroke-width="1.6"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="7" fill="#f6f6f4" stroke="#e1e2df"/><path d="M5 12h22" stroke="#7a7f7e" stroke-width="1.6"/><rect x="5" y="17" width="22" height="6" rx="1.5" fill="none" stroke="#14905f" stroke-width="1.6"/><rect x="8" y="18.6" width="4" height="2.8" rx=".6" fill="#14905f"/><rect x="19" y="18.6" width="4" height="2.8" rx=".6" fill="#b97a1c"/><path d="M24 12v5" stroke="#14905f" stroke-width="1.6"/></svg>
       <div class="wordmark">UnderTheBlock <span>Field Kit</span></div>
     </div>
     <nav class="tabs" aria-label="Field kit">
@@ -906,7 +919,7 @@ function drawCharts(R) {
     const Y = (v) => y0 + h - (v / yMax) * h;
     const n = Math.max(5, vals.length), X = (i) => x0 + (i + 0.5) * (w / n);
     if (R.lam) {
-      g.fillStyle = 'rgba(143,214,179,0.10)'; g.fillRect(x0, Y(R.lam.mean + R.lam.sd), w, Math.max(1, Y(Math.max(0, R.lam.mean - R.lam.sd)) - Y(R.lam.mean + R.lam.sd)));
+      g.fillStyle = 'rgba(20,144,95,0.10)'; g.fillRect(x0, Y(R.lam.mean + R.lam.sd), w, Math.max(1, Y(Math.max(0, R.lam.mean - R.lam.sd)) - Y(R.lam.mean + R.lam.sd)));
       g.strokeStyle = cssVar('--accent'); g.setLineDash([]); g.beginPath(); g.moveTo(x0, Y(R.lam.mean)); g.lineTo(x0 + w, Y(R.lam.mean)); g.stroke();
       g.fillStyle = cssVar('--accent'); g.textAlign = 'right'; g.fillText('mean ' + f(R.lam.mean, 1), x0 + w, Y(R.lam.mean) - 5); g.textAlign = 'left';
     }
