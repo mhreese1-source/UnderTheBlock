@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Under the Block</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Under the Block: a micro-freight stratum beneath a city block. ARC 327R Architecture & Computation, A3 The Instrument. Micah Reese.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+  /* Layout: a project sheet. A 12-column editorial grid on cool drawing paper; a drawn section through
+     the block as the centrepiece; numbered sections because the project is a real sequence (A2, then
+     A3's moves); a drawing title block as the footer. One deliberate light look. */
+  :root {
+    color-scheme: light;
+    --paper: #f3f4f1; --paper2: #e9ebe6; --card: #fbfbf9;
+    --ink: #141817; --graphite: #4a5351; --dim: #7d8582; --hair: #cdd2cd; --hair2: #dde1dc;
+    --trench: #1f6b52; --trench-soft: #d6e7df; --signal: #c9512d; --amber: #a8741f;
+    --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  html, body { background: var(--paper); color: var(--ink); }
+  body { margin: 0; font-family: var(--sans); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--paper); }
+  img { max-width: 100%; display: block; }
+  a { color: var(--trench); text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--trench); outline-offset: 3px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+  .mono { font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; color: var(--graphite); font-variant-numeric: tabular-nums; }
+  .label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+
+  /* top bar */
+  .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: rgba(243,244,241,0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--hair); }
+  .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; }
+  .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+  .mark b { font-family: var(--display); font-weight: 750; font-stretch: 112%; letter-spacing: -0.01em; font-size: 17px; }
+  .mark .mono { font-size: 11px; }
+  .nav { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { color: var(--graphite); text-decoration: none; font-size: 14px; white-space: nowrap; padding: 6px 0; border-bottom: 1.5px solid transparent; }
+  .nav a:hover { color: var(--ink); border-bottom-color: var(--ink); }
+  @media (max-width: 700px) { .mark .mono { display: none; } .nav { gap: 16px; } .nav a { font-size: 13px; } }
+
+  /* hero */
+  .hero { padding-block: 64px 28px; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 40px; align-items: end; }
+  h1 { font-family: var(--display); font-weight: 800; font-stretch: 118%; font-size: clamp(54px, 10.5vw, 148px); line-height: 0.86; letter-spacing: -0.035em; margin: 0; text-wrap: balance; }
+  h1 span { display: block; color: var(--trench); }
+  .lede { font-size: clamp(18px, 2vw, 21px); line-height: 1.45; color: var(--ink); margin: 26px 0 0; max-width: 34ch; text-wrap: pretty; }
+  .meta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0; border-top: 1.5px solid var(--ink); }
+  .meta dt, .meta dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--hair); }
+  .meta dt { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); padding-right: 18px; padding-top: 11px; }
+  .meta dd { font-size: 14.5px; }
+  @media (max-width: 860px) { .hero { grid-template-columns: minmax(0, 1fr); gap: 30px; padding-top: 40px; } }
+  figure { margin: 0; }
+  figcaption { font-family: var(--mono); font-size: 12px; color: var(--graphite); margin-top: 10px; line-height: 1.5; letter-spacing: 0.02em; }
+  figcaption b { color: var(--ink); font-weight: 500; }
+  .heroimg { border: 1px solid var(--hair); background: #dfe7ea; }
+
+  /* sections */
+  section.sec { padding-block: 84px 12px; }
+  .sechead { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 0 24px; align-items: baseline; border-top: 1.5px solid var(--ink); padding-top: 14px; margin-bottom: 32px; }
+  .sechead .no { font-family: var(--mono); font-size: 13px; color: var(--trench); }
+  .sechead h2 { font-family: var(--display); font-weight: 750; font-stretch: 110%; font-size: clamp(30px, 4.4vw, 52px); line-height: 1; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  .sechead p { grid-column: 2; margin: 14px 0 0; color: var(--graphite); max-width: 62ch; font-size: 17px; }
+  @media (max-width: 700px) { .sechead { grid-template-columns: minmax(0, 1fr); } .sechead p { grid-column: 1; } .sechead .no { margin-bottom: 6px; } }
+  .cols { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 28px; }
+  .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c6 { grid-column: span 6; } .c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+  .c3 { grid-column: span 3; }
+  @media (max-width: 900px) { .c3, .c4, .c5, .c6, .c7, .c8 { grid-column: span 12; } }
+  .prose p { margin: 0 0 16px; max-width: 64ch; }
+  .prose p.big { font-size: 20px; line-height: 1.5; }
+  blockquote { margin: 26px 0; padding: 0 0 0 20px; border-left: 3px solid var(--trench); font-family: var(--display); font-stretch: 100%; font-weight: 500; font-size: clamp(22px, 2.6vw, 30px); line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
+  blockquote cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--dim); margin-top: 10px; letter-spacing: 0.04em; font-weight: 400; }
+
+  /* drawing */
+  .drawing { background: var(--card); border: 1px solid var(--hair); padding: 18px 18px 12px; }
+  .drawing .scroll { overflow-x: auto; }
+  .drawing svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  .drawing .foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--hair2); margin-top: 8px; padding-top: 8px; }
+
+  /* moves */
+  .moves { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--hair); }
+  .move { padding: 16px 16px 18px 0; border-right: 1px solid var(--hair); min-width: 0; }
+  .move + .move { padding-left: 16px; }
+  .move:last-child { border-right: 0; }
+  .move .k { font-family: var(--mono); font-size: 11.5px; color: var(--dim); letter-spacing: 0.05em; }
+  .move h3 { font-family: var(--display); font-stretch: 105%; font-weight: 700; font-size: 19px; line-height: 1.15; margin: 8px 0 6px; }
+  .move p { margin: 0; font-size: 14px; color: var(--graphite); line-height: 1.5; }
+  .st { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; margin-top: 12px; padding: 3px 8px; border: 1px solid var(--hair); border-radius: 999px; color: var(--graphite); background: var(--card); }
+  .st i { width: 7px; height: 7px; border-radius: 50%; background: var(--hair); display: inline-block; }
+  .st.done { color: var(--trench); border-color: #9ec8b7; } .st.done i { background: var(--trench); }
+  .st.ready { color: var(--amber); border-color: #dcc197; } .st.ready i { background: var(--amber); }
+  @media (max-width: 900px) { .moves { grid-template-columns: minmax(0, 1fr); } .move, .move + .move { border-right: 0; border-bottom: 1px solid var(--hair); padding: 14px 0; } }
+
+  .figs3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); margin-top: 26px; }
+  .fig3 { padding: 18px 20px 18px 0; min-width: 0; }
+  .fig3 + .fig3 { border-left: 1px solid var(--hair); padding-left: 20px; }
+  .fig3 .n { font-family: var(--display); font-weight: 750; font-stretch: 112%; font-size: clamp(34px, 4vw, 48px); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .fig3 .n small { font-size: 0.42em; font-weight: 500; font-stretch: 100%; color: var(--graphite); letter-spacing: 0; }
+  .fig3 p { margin: 8px 0 0; font-size: 14px; color: var(--graphite); line-height: 1.5; }
+  @media (max-width: 760px) { .figs3 { grid-template-columns: minmax(0, 1fr); } .fig3 + .fig3 { border-left: 0; border-top: 1px solid var(--hair); padding-left: 0; } }
+
+  /* apps */
+  .apps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .app { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--hair); text-decoration: none; color: var(--ink); min-width: 0; transition: border-color .15s; }
+  .app:hover { border-color: var(--ink); }
+  .app .shot { aspect-ratio: 4 / 3; overflow: hidden; background: #111618; border-bottom: 1px solid var(--hair); }
+  .app .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+  .app .body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .app h3 { font-family: var(--display); font-stretch: 108%; font-weight: 750; font-size: 22px; line-height: 1.1; margin: 0; }
+  .app p { margin: 0; font-size: 14.5px; color: var(--graphite); line-height: 1.5; }
+  .app .go { margin-top: auto; padding-top: 12px; font-family: var(--mono); font-size: 12.5px; color: var(--trench); }
+  @media (max-width: 900px) { .apps { grid-template-columns: minmax(0, 1fr); } }
+
+  /* findings */
+  .answers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1.5px solid var(--ink); }
+  .ans { padding: 18px 18px 20px 0; border-right: 1px solid var(--hair); min-width: 0; }
+  .ans + .ans { padding-left: 18px; }
+  .ans:last-child { border-right: 0; }
+  .ans .q { font-family: var(--mono); font-size: 11.5px; color: var(--dim); letter-spacing: 0.06em; text-transform: uppercase; }
+  .ans .a { font-family: var(--display); font-weight: 750; font-stretch: 110%; font-size: clamp(26px, 2.8vw, 36px); line-height: 1.02; letter-spacing: -0.02em; margin: 10px 0 8px; font-variant-numeric: tabular-nums; }
+  .ans .a small { display: block; font-family: var(--mono); font-size: 12px; font-weight: 400; letter-spacing: 0.02em; color: var(--graphite); margin-top: 6px; font-stretch: 100%; }
+  .ans p { margin: 0; font-size: 14px; color: var(--graphite); line-height: 1.5; }
+  @media (max-width: 960px) { .answers { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ans:nth-child(2) { border-right: 0; } .ans:nth-child(3) { padding-left: 0; } .ans:nth-child(n+3) { border-top: 1px solid var(--hair); } }
+  @media (max-width: 560px) { .answers { grid-template-columns: minmax(0, 1fr); } .ans, .ans + .ans { border-right: 0; padding-left: 0; border-top: 1px solid var(--hair); } }
+  .chart { background: var(--card); border: 1px solid var(--hair); padding: 18px; margin-top: 28px; }
+  .chart .scroll { overflow-x: auto; }
+  .chart svg { display: block; width: 100%; min-width: 640px; height: auto; }
+
+  .ledger { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .ledger th, .ledger td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  .ledger th { font-family: var(--mono); font-weight: 400; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); border-bottom: 1.5px solid var(--ink); }
+  .ledger td.v { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  .tag { font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+  .tag.a { color: var(--signal); border-color: #e5a893; } .tag.s { color: var(--amber); border-color: #dcc197; } .tag.m { color: var(--trench); border-color: #9ec8b7; } .tag.p { color: var(--graphite); border-color: var(--hair); }
+  .tablewrap { overflow-x: auto; }
+
+  /* title block */
+  .titleblock { margin-top: 96px; border: 1.5px solid var(--ink); display: grid; grid-template-columns: 2.2fr 1fr 1fr 1fr 1fr; }
+  .titleblock > div { padding: 12px 14px; border-right: 1px solid var(--ink); min-width: 0; }
+  .titleblock > div:last-child { border-right: 0; }
+  .titleblock .label { font-size: 10.5px; }
+  .titleblock .v { font-size: 14px; margin-top: 4px; }
+  .titleblock .proj { font-family: var(--display); font-weight: 800; font-stretch: 118%; font-size: 26px; letter-spacing: -0.02em; line-height: 1; margin-top: 6px; }
+  @media (max-width: 860px) { .titleblock { grid-template-columns: 1fr 1fr; } .titleblock > div { border-bottom: 1px solid var(--ink); } .titleblock > div:first-child { grid-column: 1 / -1; border-right: 0; } .titleblock > div:nth-child(3), .titleblock > div:nth-child(5) { border-right: 0; } }
+  .foot { padding-block: 18px 40px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#top"><b>Under the Block</b><span class="mono">ARC 327R · A3</span></a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#proposal">Proposal</a>
+      <a href="#found">A2</a>
+      <a href="#instrument">A3</a>
+      <a href="#apps">Apps</a>
+      <a href="#findings">Findings</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <div class="hero">
+    <div>
+      <div class="label">A micro-freight stratum beneath a city block</div>
+      <h1 style="margin-top:18px">Under<span>the Block</span></h1>
+      <p class="lede">One loading dock, one lane one storey under the plaza, and small robots carrying every delivery to four buildings.</p>
+    </div>
+    <dl class="meta">
+      <dt>Course</dt><dd>ARC 327R · Architecture &amp; Computation</dd>
+      <dt>Brief</dt><dd>A2 Disposition Playground · A3 The Instrument</dd>
+      <dt>Author</dt><dd>Micah Reese</dd>
+      <dt>Term</dt><dd>Fall 2026 · UT Austin</dd>
+      <dt>Status</dt><dd>Known result reproduced · bench test next</dd>
+    </dl>
+  </div>
+  <figure>
+    <img class="heroimg" src="images/a2-render.jpg" width="1800" height="975" alt="Axonometric render of the A2 toy: four tenant buildings on a plaza, the one-lane service trench cut open in front of them with glass lifts at each building, the dock lift and a delivery van at the street on the right">
+    <figcaption><b>A2 · the live model in section.</b> Four tenants, one service trench under the plaza, a glass lift at each building and one dock lift at the street. Run shown: 12 delivered in 30 min, 1 passing lane, 7 stops, 0 jams.</figcaption>
+  </figure>
+
+  <!-- 01 -->
+  <section class="sec" id="proposal">
+    <div class="sechead"><div class="no">01</div><h2>The stratum</h2>
+      <p>Deliveries stop clogging the curb. A van unloads at a dock, one lift lowers each cart below the plaza, and robots carry it along a single 1.7 m lane to the building it is for.</p></div>
+    <div class="drawing">
+      <div class="scroll">
+        <svg viewBox="0 0 1000 440" role="img" aria-label="Section through the block: a tenant building on the left with a glass lift, the plaza at street level, the one-lane stratum 2.3 metres below with carts in rows, and the loading dock with its lift and a van on the right">
+          <defs>
+            <pattern id="earth" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#c7ccc6" stroke-width="1"/></pattern>
+            <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L9 5L0 9z" fill="#1f6b52"/></marker>
+            <marker id="arrA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L9 5L0 9z" fill="#a8741f"/></marker>
+            <marker id="tick" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8"><path d="M2 8L8 2" stroke="#4a5351" stroke-width="1.4"/></marker>
+          </defs>
+          <!-- earth -->
+          <rect x="0" y="196" width="1000" height="200" fill="url(#earth)"/>
+          <!-- building (left) -->
+          <rect x="20" y="40" width="150" height="156" fill="#fbfbf9" stroke="#141817" stroke-width="1.6"/>
+          <g stroke="#cdd2cd"><line x1="20" y1="79" x2="170" y2="79"/><line x1="20" y1="118" x2="170" y2="118"/><line x1="20" y1="157" x2="170" y2="157"/></g>
+          <text x="32" y="62" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="12" fill="#141817">TENANT D</text>
+          <text x="32" y="186" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10.5" fill="#4a5351">lobby</text>
+          <!-- tenant lift -->
+          <rect x="132" y="150" width="26" height="128" fill="#e6f0f3" stroke="#3d7f99" stroke-width="1.4"/>
+          <rect x="136" y="252" width="18" height="22" fill="#1f6b52"/>
+          <path d="M145 246 V164" stroke="#1f6b52" stroke-width="1.6" marker-end="url(#arr)"/>
+          <text x="178" y="172" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10.5" fill="#3d7f99">tenant lift ×4</text>
+          <!-- plaza slab -->
+          <rect x="170" y="190" width="640" height="8" fill="#141817"/>
+          <text x="400" y="180" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="#4a5351">PLAZA · street level ±0.00</text>
+          <!-- stratum void -->
+          <rect x="132" y="198" width="740" height="80" fill="#fbfbf9"/>
+          <rect x="132" y="278" width="740" height="8" fill="#141817"/>
+          <line x1="132" y1="198" x2="872" y2="198" stroke="#141817" stroke-width="1.6"/>
+          <!-- rows -->
+          <g stroke="#cdd2cd" stroke-dasharray="3 3">
+            <line x1="230" y1="200" x2="230" y2="276"/><line x1="300" y1="200" x2="300" y2="276"/><line x1="370" y1="200" x2="370" y2="276"/>
+            <line x1="590" y1="200" x2="590" y2="276"/><line x1="660" y1="200" x2="660" y2="276"/><line x1="730" y1="200" x2="730" y2="276"/>
+          </g>
+          <!-- break line -->
+          <path d="M455 200 L470 238 L455 276 M495 200 L510 238 L495 276" stroke="#4a5351" fill="none" stroke-width="1.2"/>
+          <text x="483" y="232" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10.5" fill="#4a5351" text-anchor="middle">17 rows</text>
+          <!-- carts: inbound (west, mint), outgoing (east, amber) -->
+          <g><rect x="250" y="244" width="24" height="30" rx="3" fill="#1f6b52"/><circle cx="255" cy="276" r="2.4" fill="#141817"/><circle cx="269" cy="276" r="2.4" fill="#141817"/></g>
+          <g><rect x="610" y="244" width="24" height="30" rx="3" fill="#1f6b52"/><circle cx="615" cy="276" r="2.4" fill="#141817"/><circle cx="629" cy="276" r="2.4" fill="#141817"/></g>
+          <g><rect x="390" y="244" width="24" height="30" rx="3" fill="#a8741f"/><circle cx="395" cy="276" r="2.4" fill="#141817"/><circle cx="409" cy="276" r="2.4" fill="#141817"/></g>
+          <path d="M600 230 H540" stroke="#1f6b52" stroke-width="1.6" marker-end="url(#arr)"/>
+          <path d="M420 230 H445" stroke="#a8741f" stroke-width="1.6" marker-end="url(#arrA)"/>
+          <text x="560" y="222" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10" fill="#1f6b52">deliveries west</text>
+          <text x="355" y="222" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10" fill="#a8741f">mail east</text>
+          <!-- dock lift + dock -->
+          <rect x="810" y="120" width="32" height="158" fill="#e6f0f3" stroke="#3d7f99" stroke-width="1.4"/>
+          <rect x="814" y="218" width="24" height="22" fill="#1f6b52"/>
+          <path d="M826 140 V210" stroke="#1f6b52" stroke-width="1.6" marker-end="url(#arr)"/>
+          <rect x="842" y="182" width="118" height="16" fill="#141817"/>
+          <path d="M842 120 L960 108" stroke="#141817" stroke-width="1.6"/><line x1="950" y1="109" x2="950" y2="182" stroke="#141817" stroke-width="1.2"/>
+          <g fill="none" stroke="#3d7f99"><rect x="850" y="166" width="14" height="14"/><rect x="868" y="166" width="14" height="14"/><rect x="886" y="166" width="14" height="14"/><rect x="904" y="166" width="14" height="14"/><rect x="922" y="166" width="14" height="14"/></g>
+          <text x="850" y="158" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10.5" fill="#4a5351">DOCK · 5 pads</text>
+          <text x="770" y="112" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10.5" fill="#3d7f99">dock lift</text>
+          <!-- street + van -->
+          <rect x="960" y="194" width="40" height="6" fill="#4a5351"/>
+          <g transform="translate(962,150)"><rect x="0" y="6" width="38" height="30" rx="3" fill="#fbfbf9" stroke="#141817" stroke-width="1.4"/><circle cx="9" cy="40" r="4" fill="#141817"/><circle cx="30" cy="40" r="4" fill="#141817"/></g>
+          <text x="968" y="214" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10" fill="#4a5351">street</text>
+          <!-- dimensions -->
+          <line x1="892" y1="198" x2="892" y2="278" stroke="#4a5351" marker-start="url(#tick)" marker-end="url(#tick)"/>
+          <line x1="872" y1="198" x2="900" y2="198" stroke="#4a5351" stroke-width="0.8"/><line x1="872" y1="278" x2="900" y2="278" stroke="#4a5351" stroke-width="0.8"/>
+          <text x="900" y="242" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="#141817">2.3 m</text>
+          <line x1="300" y1="300" x2="370" y2="300" stroke="#4a5351" marker-start="url(#tick)" marker-end="url(#tick)"/>
+          <text x="335" y="316" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="#141817" text-anchor="middle">1 row · 2.3 m</text>
+          <line x1="132" y1="350" x2="872" y2="350" stroke="#4a5351" marker-start="url(#tick)" marker-end="url(#tick)"/>
+          <text x="502" y="368" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="#141817" text-anchor="middle">17 rows × 2.3 m = 39.1 m · one lane, 1.7 m wide; a passing bay widens a row to 3.4 m (in plan)</text>
+          <!-- cart callout -->
+          <line x1="262" y1="242" x2="232" y2="318" stroke="#4a5351" stroke-width="0.8"/>
+          <text x="132" y="330" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10.5" fill="#4a5351">robot + load · 0.8 × 0.8 × 1.05 m</text>
+          <text x="20" y="420" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10.5" fill="#7d8582">SECTION A–A · not to scale horizontally · vertical dimensions true</text>
+        </svg>
+      </div>
+      <div class="foot"><span class="label">Section through the block, dock to tenant</span><span class="mono">Dimensions from the A3 parameter ledger · assumed</span></div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="sec" id="found">
+    <div class="sechead"><div class="no">02</div><h2>What the toy found</h2>
+      <p>A2 · Disposition Playground. A live model where every cart is one object for its whole trip, and the configuration grows out of what the carts refuse to do.</p></div>
+    <div class="cols">
+      <div class="c6 prose">
+        <p class="big">One narrow service trench became a network of compressed rows and passing pockets.</p>
+        <p>As more carts entered the system, the toy showed where a continuous trench could no longer carry traffic both ways. Carts meeting head-on with nowhere to pass deadlocked. Passing pockets appeared where those conflicts happened, giving the lane a rhythm of compression and release rather than one uniform corridor.</p>
+        <p>Neither of us would have drawn the passing-bay network. We would have drawn a continuous corridor and assumed the carts could sort it out. The toy made the conflict visible and turned failure into a spatial requirement.</p>
+        <blockquote>The toy can discover a configuration within its system, but it cannot question the system itself.<cite>A2 note · quoted in the A3 brief</cite></blockquote>
+      </div>
+      <figure class="c6">
+        <img src="images/a2-challenge.jpg" width="1055" height="660" alt="The A2 challenge screen: deliver 12 packages, stop robots and build as few passing lanes as you can" style="border:1px solid var(--hair)">
+        <figcaption><b>The challenge.</b> Deliver 12 packages; stop robots and build as few passing lanes as possible. The A3 audit later found the 7 stops were a person doing traffic control.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="sec" id="instrument">
+    <div class="sechead"><div class="no">03</div><h2>The instrument</h2>
+      <p>A3 asks for a truer toy, not a bigger one: one claim, one test, one correction. Ground the one number the verdict depends on, and let the toy predict before it is tested.</p></div>
+    <div class="moves">
+      <div class="move"><div class="k">Move 1 · W7</div><h3>Contract</h3><p>Claim, what the toy cannot know, and the test that would prove it wrong. Every rule and number listed in a ledger.</p><span class="st done"><i></i>drafted</span></div>
+      <div class="move"><div class="k">Move 2 · W8</div><h3>Known result</h3><p>The toy reproduces Little's law, L = λW, and the textbook queue above capacity.</p><span class="st done"><i></i>reproduced</span></div>
+      <div class="move"><div class="k">Move 3 · W8–W9</div><h3>Bench test</h3><p>Count arrivals at a real dock and time a freight elevator, five repeats each.</p><span class="st ready"><i></i>field kit ready</span></div>
+      <div class="move"><div class="k">Move 4 · W10</div><h3>Correct, predict</h3><p>Swap in measured numbers, lock a prediction, then test it. A miss is a result.</p><span class="st"><i></i>next</span></div>
+      <div class="move"><div class="k">Move 5 · W11</div><h3>Evidence panel</h3><p>Measured, sourced and assumed on screen, readable by a stranger.</p><span class="st"><i></i>next</span></div>
+    </div>
+    <div class="cols" style="margin-top:40px">
+      <div class="c5 prose">
+        <div class="label" style="margin-bottom:10px">Move 2 · the known result</div>
+        <p class="big">For any system carts enter and leave, the average number inside equals the arrival rate times the average time each one spends inside.</p>
+        <p>The toy now measures both sides live. When arrivals pass what the dock lift can take, ρ = λ/μ ≥ 1, the queue should never clear and should grow by λ − μ every hour. It does.</p>
+      </div>
+      <figure class="c7">
+        <img src="images/known-result.jpg" width="1600" height="545" alt="Chart: carts waiting after four hours against arrival rate. Toy points sit on the textbook line, flat until 30 per hour and rising after it; jam markers along the top for the full trench" style="border:1px solid var(--hair)">
+        <figcaption><b>Textbook next to toy.</b> Blue dots: the dock lift alone. Rings: the full trench with mail running the other way. Crosses: the trench jammed.</figcaption>
+      </figure>
+    </div>
+    <div class="figs3">
+      <div class="fig3"><div class="n">4.3<small>%</small></div><p>Largest gap between the toy's L and λ × W below capacity, across 9 runs. The gap is carts still inside when a run stops.</p></div>
+      <div class="fig3"><div class="n">±1<small> cart</small></div><p>Above μ = 30 per hour, the toy's queue after 4 hours lands on (λ − μ) × 4 h in all 6 runs.</p></div>
+      <div class="fig3"><div class="n">6<small> of 16</small></div><p>Runs where the trench jammed with mail running the other way, 2 of them below the lift's capacity. There the lane, not the lift, is the limit.</p></div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="sec" id="apps">
+    <div class="sechead"><div class="no">04</div><h2>Three instruments</h2>
+      <p>Each runs in a browser, on a laptop or a phone. They share one simulation: the same rows, passing bays, dock lift and jam rules.</p></div>
+    <div class="apps">
+      <a class="app" href="toy/index.html">
+        <div class="shot"><img src="images/a2-render.jpg" alt="" loading="lazy" style="object-position:58% 60%"></div>
+        <div class="body"><div class="label">Model · A2 + Move 2</div><h3>Under the Block</h3><p>The live 3D model in section, the routing proposer that the model accepts or refuses, and the Little's law panel.</p><span class="go">Open the model →</span></div>
+      </a>
+      <a class="app" href="fieldkit/index.html">
+        <div class="shot"><img src="images/fieldkit-results.jpg" alt="" loading="lazy"></div>
+        <div class="body"><div class="label">Bench test · Move 3</div><h3>Field Kit</h3><p>A phone app for the dock and the elevator: tap arrivals and departures, time lift cycles, and get λ, W, L and μ against the toy, with the A3 checklist.</p><span class="go">Open the field kit →</span></div>
+      </a>
+      <a class="app" href="track/index.html">
+        <div class="shot"><img src="images/track-map.jpg" alt="" loading="lazy" style="object-position:center 40%"></div>
+        <div class="body"><div class="label">Live field dashboard</div><h3>Track</h3><p>Follow one package from van to tenant on a map of the block, with its place pinned to the bay or row and an honest ETA band.</p><span class="go">Open the tracker →</span></div>
+      </a>
+    </div>
+    <div class="cols" style="margin-top:44px">
+      <figure class="c8">
+        <img src="images/track-map.jpg" width="1600" height="1211" alt="Tracker map in plan: four tenant buildings above the plaza, the one-lane stratum with ten passing bays labelled P1 to P10, a package pinned at Bay P6 row 9 with a dashed route to Tenant C's lift" style="border:1px solid var(--hair)" loading="lazy">
+        <figcaption><b>Track · plan view.</b> The package is pinned at Bay P6, row 9; the dashed route runs west to Tenant C's lift. Passing bays are numbered from the dock.</figcaption>
+      </figure>
+      <div class="c4 prose">
+        <div class="label" style="margin-bottom:10px">Uncertainty, shown honestly</div>
+        <p>Each ETA comes from running the simulation forward 32 times with fresh randomness. The app shows the likely time and the range that holds 8 in 10 of the futures, says how many futures jam instead, and promises nothing when every future jams.</p>
+        <p>Checked across three simulated days, <b>54 of 59</b> packages arrived inside their 80% window: slightly cautious, the honest side to be wrong on. The window covers randomness inside the model only, so with assumed inputs the real spread is wider.</p>
+        <img src="images/track-package.jpg" width="760" height="1180" alt="Package card: arriving time, the 80% band, how many futures deliver, the pin location and a step timeline from ordered to delivered" style="border:1px solid var(--hair);margin-top:18px;max-height:520px;object-fit:cover;object-position:top" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="sec" id="findings">
+    <div class="sechead"><div class="no">05</div><h2>What the stratum can carry</h2>
+      <p>Ten random 8-hour shifts per setting, at rising arrival rates. Ranges run from "no cart ever spills onto the curb" to "the dock queue stays bounded". Days are 16 operating hours, assumed.</p></div>
+    <div class="answers">
+      <div class="ans"><div class="q">Per day</div><div class="a">288–464<small>carts in 16 hours</small></div><p>As designed: a traffic controller and passing bays at all 8 choke points. About 2,900–14,000 parcels at an assumed 10–30 a cart.</p></div>
+      <div class="ans"><div class="q">Bottleneck</div><div class="a">Dock lift<small>30 carts an hour</small></div><p>One lift lowering a cart every 2 minutes. The lane alone carries about 300 an hour in one direction.</p></div>
+      <div class="ans"><div class="q">Floor plenums</div><div class="a">No<small>robot is 1.05 m tall</small></div><p>Office raised floors are 41–70 mm deep, data-centre floors 0.8–1.0 m. The robot stays in the stratum and the tenant lifts.</p></div>
+      <div class="ans"><div class="q">Swarm</div><div class="a">One way<small>up to 18 in the lane</small></div><p>Robots follow each other row by row without jamming. Head-on traffic needs bays at every choke point plus the controller.</p></div>
+    </div>
+    <div class="chart">
+      <div class="label">Intermediate scales · carts per 16-hour day</div>
+      <div class="scroll" id="scaleChart"></div>
+      <div class="mono" style="margin-top:8px">Solid: no curb spill in at least 8 of 10 shifts. Pale: queue stays bounded. Without a traffic controller, two-way traffic at 16 carts an hour jams in a median 2.7 hours.</div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="sec" id="ledger">
+    <div class="sechead"><div class="no">06</div><h2>What the model cannot know</h2>
+      <p>Tenant lifts are drawn but not simulated. There is no maintenance, charging, turning radius or structure. The traffic controller is a planner rule, not physics. And until the bench test, the numbers below are guesses.</p></div>
+    <div class="tablewrap">
+      <table class="ledger">
+        <thead><tr><th>Number the verdict depends on</th><th>Value</th><th>Tag</th><th>How it gets grounded</th></tr></thead>
+        <tbody>
+          <tr><td>Arrivals at the dock</td><td class="v">16 carts/hr peak</td><td><span class="tag a">assumed</span></td><td>Field Kit counts at the Jester mail center, five 30-minute windows</td></tr>
+          <tr><td>Dock lift cycle</td><td class="v">2 min</td><td><span class="tag a">assumed</span></td><td>Field Kit timing of a campus freight elevator, five cycles</td></tr>
+          <tr><td>Time to cross one 2.3 m row</td><td class="v">0.15 min</td><td><span class="tag a">assumed</span></td><td>Robot spec sheet</td></tr>
+          <tr><td>Outgoing mail per building</td><td class="v">3 carts/hr</td><td><span class="tag a">assumed</span></td><td>Mail-room pickup counts</td></tr>
+          <tr><td>Raised-floor depth</td><td class="v">41–70 mm · 0.8–1.0 m</td><td><span class="tag s">sourced</span></td><td><a href="https://en.wikipedia.org/wiki/Raised_floor">Wikipedia, Raised floor</a></td></tr>
+          <tr><td>Little's law in the toy</td><td class="v">within 4.3%</td><td><span class="tag m">reproduced</span></td><td>Move 2, shown in the model</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="titleblock" role="contentinfo">
+    <div><div class="label">Project</div><div class="proj">Under the Block</div><div class="mono" style="margin-top:6px">A micro-freight stratum beneath a city block</div></div>
+    <div><div class="label">Sheet</div><div class="v">A3 · The Instrument</div></div>
+    <div><div class="label">Course</div><div class="v">ARC 327R · Architecture &amp; Computation</div></div>
+    <div><div class="label">Drawn by</div><div class="v">Micah Reese</div></div>
+    <div><div class="label">Date</div><div class="v mono" style="font-size:14px;color:var(--ink)">06 Nov 2026</div></div>
+  </div>
+  <div class="foot"><span class="mono">UT Austin · School of Architecture · Fall 2026</span><span class="mono">Fictional project · all three instruments run in the browser</span></div>
+</main>
+
+<script>
+(function () {
+  // intermediate scales chart, drawn from the simulation results
+  var S = [
+    { n: '1 building', a: 'next to the dock', b: 'no controller', lo: 16, hi: 29 },
+    { n: '2 buildings', a: 'A + B', b: 'no controller', lo: 13, hi: 13 },
+    { n: '3 buildings', a: 'A + B + C', b: 'no controller', lo: 7, hi: 7 },
+    { n: '4 buildings', a: 'full block', b: 'no controller', lo: 3, hi: 3 },
+    { n: '4 buildings', a: '+ controller', b: '+ 10 bays · as designed', lo: 18, hi: 29, key: true },
+    { n: '4 buildings', a: '+ 12 bays', b: '+ 1-min lift', lo: 39, hi: 58 }
+  ];
+  var w = 1000, h = 330, base = 250, top = 30, mx = 1000;
+  var Y = function (v) { return base - (v / mx) * (base - top); };
+  var bw = (w - 70) / S.length;
+  var s = '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Carts per day at six scales of operation, from one building to the full block with a faster lift">';
+  for (var v = 0; v <= mx; v += 250) s += '<line x1="56" x2="' + w + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#dde1dc"/><text x="48" y="' + (Y(v) + 4) + '" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="#7d8582" text-anchor="end">' + v + '</text>';
+  S.forEach(function (d, i) {
+    var x = 64 + i * bw, bx = x + bw * 0.2, bwid = bw * 0.6, lo = d.lo * 16, hi = d.hi * 16;
+    s += '<rect x="' + bx + '" y="' + Y(hi) + '" width="' + bwid + '" height="' + (base - Y(hi)) + '" fill="' + (d.key ? '#d6e7df' : '#e3e6e1') + '"/>';
+    s += '<rect x="' + bx + '" y="' + Y(lo) + '" width="' + bwid + '" height="' + (base - Y(lo)) + '" fill="' + (d.key ? '#1f6b52' : '#4a5351') + '"/>';
+    s += '<text x="' + (x + bw / 2) + '" y="' + (Y(hi) - 8) + '" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="12" fill="#141817" text-anchor="middle">' + (lo === hi ? lo : lo + '–' + hi) + '</text>';
+    s += '<text x="' + (x + bw / 2) + '" y="' + (base + 22) + '" font-family="Archivo, Helvetica Neue, Arial, sans-serif" font-weight="700" font-size="14" fill="#141817" text-anchor="middle">' + d.n + '</text>';
+    s += '<text x="' + (x + bw / 2) + '" y="' + (base + 40) + '" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="#4a5351" text-anchor="middle">' + d.a + '</text>';
+    s += '<text x="' + (x + bw / 2) + '" y="' + (base + 56) + '" font-family="IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="#7d8582" text-anchor="middle">' + d.b + '</text>';
+  });
+  s += '<line x1="56" x2="' + w + '" y1="' + base + '" y2="' + base + '" stroke="#141817" stroke-width="1.5"/></svg>';
+  document.getElementById('scaleChart').innerHTML = s;
+})();
+</script>
+</body>
+</html>

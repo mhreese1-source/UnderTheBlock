@@ -1,0 +1,1433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Live tracker for UnderTheBlock deliveries: follow a package from the loading dock through the stratum to its tenant, with honest ETA bands and a capacity explainer.">
+<title>UnderTheBlock Track</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: a delivery-tracking app. Map of the block in plan (the stratum drawn as a dashed lane under
+     the plaza) beside a package sheet, like a ride-hailing app; a data view; and a plain-language explainer.
+     One deliberate dark look shared with the UnderTheBlock toy: ink, mint = your package and measured
+     values, amber = outgoing mail and assumed values, coral = trouble. */
+  :root {
+    color-scheme: dark;
+    --bg: #0d1214; --bg2: #090d0f; --panel: #141b1e; --panel2: #1a2327; --rule: #2a373c; --rule2: #1f292d;
+    --text: #edf2f1; --body: #b3bfbf; --dim: #7b898b; --accent: #8fd6b3; --accent-ink: #0b2219;
+    --amber: #f0c987; --warn: #ff8a6b; --blue: #6cb6e0; --ok: #9de08a;
+    --plaza: #1b2427; --block: #222d31; --street: #11181b;
+    --display: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { background: var(--bg); color: var(--body); font-family: var(--sans); }
+  body { margin: 0; -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--bg); }
+  button, input, select { font: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  a { color: var(--accent); }
+
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: rgba(13,18,20,0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule2); }
+  .bar-in { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 14px; min-height: 58px; flex-wrap: wrap; padding-block: 8px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .brand { display: flex; align-items: center; gap: 9px; flex: none; }
+  .brand svg { width: 28px; height: 28px; }
+  .wordmark { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--text); }
+  .wordmark span { color: var(--accent); }
+  .tabs { display: flex; gap: 2px; background: var(--panel); border: 1px solid var(--rule2); border-radius: 10px; padding: 3px; overflow-x: auto; }
+  .tabs a { color: var(--body); text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 7px 12px; border-radius: 7px; white-space: nowrap; }
+  .tabs a.on { background: var(--panel2); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+  .clockchip { margin-left: auto; display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--body); }
+  .clockchip b { color: var(--text); font-size: 15px; font-weight: 600; }
+  .clockchip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(143,214,179,0.18); }
+  .clockchip.paused .dot { background: var(--dim); box-shadow: none; }
+  @media (max-width: 720px) { .tabs { order: 3; width: 100%; } .tabs a { flex: 1; text-align: center; } }
+
+  main { max-width: 1280px; margin: 0 auto; padding-block: 18px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1 { font-family: var(--display); font-size: clamp(28px, 5vw, 42px); line-height: 1.03; color: var(--text); margin: 4px 0 8px; font-weight: 700; text-wrap: balance; }
+  h2 { font-family: var(--display); font-size: 21px; color: var(--text); margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+  h3 { font-size: 14px; color: var(--text); margin: 0 0 4px; font-weight: 600; }
+  p { line-height: 1.55; margin: 0 0 12px; max-width: 70ch; font-size: 14.5px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .note { font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .card { background: var(--panel); border: 1px solid var(--rule2); border-radius: 14px; padding: 16px; min-width: 0; }
+  .card + .card { margin-top: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--panel2); color: var(--text); border: 1px solid var(--rule); border-radius: 9px; padding: 8px 12px; font-size: 13.5px; font-weight: 500; cursor: pointer; min-height: 38px; }
+  .btn:hover { border-color: #3d4d53; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn.on { background: #e9efed; color: #0d1214; border-color: #e9efed; }
+  .btn.small { min-height: 30px; padding: 4px 9px; font-size: 12.5px; border-radius: 7px; }
+  select { background: var(--bg2); color: var(--text); border: 1px solid var(--rule); border-radius: 8px; padding: 7px 9px; font-size: 13.5px; }
+  input[type=number] { background: var(--bg2); color: var(--text); border: 1px solid var(--rule); border-radius: 8px; padding: 7px 9px; font-size: 13.5px; width: 84px; }
+  .tag { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+  .tag.a { color: var(--warn); border-color: rgba(255,138,107,0.45); }
+  .tag.m { color: var(--accent); border-color: rgba(143,214,179,0.45); }
+  .tag.s { color: var(--amber); border-color: rgba(240,201,135,0.45); }
+  .tag.p { color: var(--blue); border-color: rgba(108,182,224,0.45); }
+
+  /* track view */
+  .track { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+  @media (max-width: 1000px) { .track { grid-template-columns: minmax(0, 1fr); } }
+  .mapcard { padding: 0; overflow: hidden; position: relative; }
+  .maptop { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--rule2); }
+  .maptop h2 { margin: 0; font-size: 18px; }
+  canvas#map { display: block; width: 100%; height: clamp(330px, 46vw, 560px); touch-action: manipulation; cursor: pointer; background: var(--street); }
+  .mapctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--rule2); }
+  .mapctl .sep { width: 1px; height: 24px; background: var(--rule); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-family: var(--mono); font-size: 11px; color: var(--dim); padding: 0 14px 12px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+
+  .sheet { display: grid; gap: 14px; position: sticky; top: 76px; }
+  @media (max-width: 1000px) { .sheet { position: static; } }
+  .pkghead { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+  .pill { font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--rule); color: var(--text); white-space: nowrap; }
+  .pill.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .pill.warn { color: var(--warn); border-color: rgba(255,138,107,0.5); }
+  .eta { font-family: var(--display); font-size: 34px; font-weight: 700; color: var(--text); line-height: 1.05; margin-top: 8px; }
+  .eta small { font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--dim); }
+  .band { position: relative; height: 34px; margin: 14px 0 4px; }
+  .band .track0 { position: absolute; left: 0; right: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--rule2); }
+  .band .rng { position: absolute; top: 10px; height: 14px; border-radius: 7px; background: rgba(143,214,179,0.28); border: 1px solid rgba(143,214,179,0.6); }
+  .band .med { position: absolute; top: 6px; width: 3px; height: 22px; background: var(--accent); border-radius: 2px; transform: translateX(-1px); }
+  .band .now { position: absolute; top: 2px; width: 2px; height: 30px; background: var(--text); opacity: 0.7; }
+  .bandlbl { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .honest { font-size: 12.5px; line-height: 1.5; color: var(--body); margin-top: 10px; padding: 9px 11px; border-radius: 9px; background: var(--panel2); border: 1px solid var(--rule2); }
+  .honest b { color: var(--text); }
+  .steps { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 0; }
+  .steps li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; position: relative; padding-bottom: 14px; }
+  .steps li::before { content: ""; position: absolute; left: 10px; top: 20px; bottom: 0; width: 2px; background: var(--rule); }
+  .steps li:last-child::before { display: none; }
+  .steps .mk { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rule); background: var(--bg); z-index: 1; }
+  .steps li.done .mk { background: var(--accent); border-color: var(--accent); }
+  .steps li.done::before { background: var(--accent); }
+  .steps li.now .mk { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(143,214,179,0.2); background: var(--bg); }
+  .steps li.bad .mk { border-color: var(--warn); box-shadow: 0 0 0 4px rgba(255,138,107,0.2); }
+  .steps .t { font-size: 14px; color: var(--text); font-weight: 500; }
+  .steps .d { font-size: 12.5px; color: var(--dim); line-height: 1.45; }
+  .steps .w { font-family: var(--mono); font-size: 11.5px; color: var(--dim); white-space: nowrap; }
+  .steps li.pending .t { color: var(--dim); font-weight: 400; }
+  .ping { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: rgba(143,214,179,0.07); border: 1px solid rgba(143,214,179,0.3); }
+  .ping .pin { width: 40px; height: 40px; flex: none; }
+  .ping .where { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .ping .sub { font-size: 12.5px; color: var(--body); }
+  .order { display: grid; gap: 10px; }
+  .tenants { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .tenants button { background: var(--panel2); border: 1px solid var(--rule); color: var(--text); border-radius: 9px; padding: 9px 4px; cursor: pointer; font-weight: 600; font-family: var(--display); font-size: 16px; }
+  .tenants button.on { background: #e9efed; color: #0d1214; border-color: #e9efed; }
+  .tenants button small { display: block; font-family: var(--mono); font-size: 10px; font-weight: 400; color: var(--dim); }
+  .tenants button.on small { color: #4a5658; }
+  .notes { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
+  .notes .n { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; font-size: 13px; line-height: 1.4; padding: 7px 0; border-top: 1px solid var(--rule2); }
+  .notes .n:first-child { border-top: 0; }
+  .notes .n .tm { font-family: var(--mono); font-size: 11.5px; color: var(--dim); padding-top: 1px; }
+  .notes .n.warn .x { color: var(--warn); }
+  .notes .n.pos .x b { color: var(--accent); }
+  .toasts { position: fixed; z-index: 80; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); pointer-events: none; }
+  .toast { pointer-events: auto; background: rgba(26,35,39,0.97); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); font-size: 13.5px; color: var(--text); line-height: 1.4; animation: tin 0.25s ease-out; }
+  .toast.warn { border-left-color: var(--warn); }
+  .toast .tt { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+  .toast.warn .tt { color: var(--warn); }
+  @media (max-width: 720px) { .toasts { right: max(16px, env(safe-area-inset-right, 0px)); width: auto; } .toast { font-size: 13px; padding: 8px 10px; } }
+  @keyframes tin { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule2); border: 1px solid var(--rule2); border-radius: 12px; overflow: hidden; }
+  .kpi { background: var(--panel); padding: 12px 14px; min-width: 0; }
+  .kpi .v { font-family: var(--mono); font-size: 22px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .kpi .l { font-size: 11.5px; color: var(--dim); margin-top: 3px; line-height: 1.35; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 14px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule2); border-radius: 10px; margin-top: 10px; max-height: 420px; }
+  table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--rule2); text-align: right; white-space: nowrap; }
+  th { color: var(--dim); font-weight: 500; background: var(--bg2); font-size: 11px; position: sticky; top: 0; }
+  td.l, th.l { text-align: left; }
+  .good { color: var(--ok); } .bad { color: var(--warn); }
+  .chartbox { width: 100%; overflow-x: auto; }
+  .chartbox svg { display: block; width: 100%; height: auto; min-width: 520px; }
+  .param { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--rule2); }
+  .param:first-of-type { border-top: 0; }
+  .param .nm { color: var(--text); font-size: 14px; }
+  .param .ds { font-size: 12px; color: var(--dim); }
+
+  /* explain */
+  .xp { display: grid; gap: 18px; }
+  .verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+  .vcard { background: var(--panel2); border: 1px solid var(--rule2); border-radius: 12px; padding: 14px; }
+  .vcard .q { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--dim); text-transform: uppercase; }
+  .vcard .a { font-family: var(--display); font-size: 26px; font-weight: 700; color: var(--text); margin-top: 6px; line-height: 1.1; }
+  .vcard .a small { font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--dim); }
+  .vcard .w { font-size: 13px; line-height: 1.5; margin-top: 6px; }
+  .how { font-size: 12.5px; color: var(--dim); line-height: 1.5; margin-top: 8px; border-top: 1px dashed var(--rule); padding-top: 8px; }
+  .how b { color: var(--body); }
+  details.src summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+</style>
+
+</head>
+<body>
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="7" fill="#1a2327" stroke="#2a373c"/><path d="M5 12h22" stroke="#7b898b" stroke-width="1.6"/><rect x="5" y="17" width="22" height="6" rx="1.5" fill="none" stroke="#8fd6b3" stroke-width="1.6"/><rect x="8" y="18.6" width="4" height="2.8" rx=".6" fill="#8fd6b3"/><rect x="19" y="18.6" width="4" height="2.8" rx=".6" fill="#d8ab5a"/><path d="M24 12v5" stroke="#8fd6b3" stroke-width="1.6"/></svg>
+      <div class="wordmark">UnderTheBlock <span>Track</span></div>
+    </div>
+    <nav class="tabs" aria-label="Views">
+      <a href="#track" data-view="track">Track</a>
+      <a href="#data" data-view="data">Fleet &amp; data</a>
+      <a href="#explain" data-view="explain">How it works</a>
+    </nav>
+    <div class="clockchip" id="clockChip"><span class="dot"></span><span>block time</span><b id="clock">06:00</b></div>
+  </div>
+</header>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<main>
+<!-- ======================= TRACK ======================= -->
+<section id="view-track">
+  <div class="track">
+    <div>
+      <div class="card mapcard">
+        <div class="maptop">
+          <div><div class="eyebrow">Live map · plan view</div><h2>The block, and the stratum under its plaza</h2></div>
+          <div class="row">
+            <button class="btn small" id="btnFollow">Follow my package</button>
+            <button class="btn small" id="btnBuild" title="Tap a row on the map to add or remove a passing bay">Build bays</button>
+          </div>
+        </div>
+        <canvas id="map" aria-label="Map of the block: street and loading dock on the right, the one-lane stratum under the plaza, four tenant buildings above it, and every robot as a dot"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>your package</span>
+          <span><i style="background:#5f8f7b"></i>other deliveries</span>
+          <span><i style="background:var(--amber)"></i>outgoing mail</span>
+          <span><i style="background:transparent;border:1.5px dashed #6b7c80"></i>stratum, 2.3 m below the plaza</span>
+          <span><i style="background:#2f5a46;border-radius:2px"></i>passing bay (2 carts)</span>
+        </div>
+        <div class="mapctl">
+          <button class="btn small" id="btnPlay">Pause</button>
+          <select id="selSpeed" aria-label="Speed"><option value="0.5">0.5 min/s</option><option value="1" selected>1 block-minute per second</option><option value="3">3 min/s</option><option value="8">8 min/s</option></select>
+          <span class="sep"></span>
+          <label class="note">Arrivals <select id="selMode" aria-label="Arrival pattern"><option value="wave">morning wave</option><option value="steady">steady</option></select></label>
+          <label class="note">peak <input type="number" id="inRate" min="1" max="80" step="1" value="16" aria-label="Arrivals per hour"> /hr</label>
+          <label class="note"><input type="checkbox" id="chkCtrl" checked> traffic controller</label>
+          <label class="note"><input type="checkbox" id="chkMail" checked> outgoing mail</label>
+          <button class="btn small" id="btnReset">New day</button>
+        </div>
+      </div>
+      <div class="kpis" id="dayKpis" style="margin-top:14px"></div>
+    </div>
+
+    <aside class="sheet">
+      <div class="card" id="pkgCard">
+        <div id="pkgEmpty">
+          <div class="eyebrow">Your delivery</div>
+          <h2 style="margin-top:4px">Order a package and watch it cross the block</h2>
+          <p class="note" style="font-size:13.5px">Pick a tenant. A van brings it to the loading dock, the dock lift lowers it into the stratum, and a robot carries it along the one-lane trench to that building's lift. Or tap any mint dot on the map to follow someone else's.</p>
+        </div>
+        <div id="pkgLive" hidden>
+          <div class="pkghead">
+            <div><div class="eyebrow" id="pkgId">Package</div><h2 id="pkgTitle" style="margin:2px 0 0">To Tenant C</h2></div>
+            <span class="pill" id="pkgPill">on its way</span>
+          </div>
+          <div class="eta" id="etaBig">—</div>
+          <div class="band" id="band"><div class="track0"></div><div class="rng" id="bandRng"></div><div class="med" id="bandMed"></div><div class="now" id="bandNow"></div></div>
+          <div class="bandlbl"><span id="bandLo"></span><span id="bandMid"></span><span id="bandHi"></span></div>
+          <div class="honest" id="honest"></div>
+          <div class="ping" id="ping">
+            <svg class="pin" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3c-7 0-12.5 5.4-12.5 12.2C7.5 24.4 20 37 20 37s12.5-12.6 12.5-21.8C32.5 8.4 27 3 20 3z" fill="#8fd6b3"/><circle cx="20" cy="15.5" r="5" fill="#0b2219"/></svg>
+            <div><div class="where" id="pingWhere">Dock pad 2</div><div class="sub" id="pingSub"></div></div>
+          </div>
+          <ol class="steps" id="steps"></ol>
+          <div class="note" id="routeNote"></div>
+        </div>
+        <div class="order" style="margin-top:14px">
+          <div class="tenants" id="tenants">
+            <button data-t="0">A<small>row 12</small></button><button data-t="1">B<small>row 8</small></button><button data-t="2" class="on">C<small>row 4</small></button><button data-t="3">D<small>row 0</small></button>
+          </div>
+          <button class="btn primary" id="btnOrder">Order a package to Tenant C</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h3>Notifications</h3><span class="note" id="noteCount"></span></div>
+        <div class="notes" id="notes"><div class="note">Nothing yet. You will hear when your package reaches the dock, enters the stratum, and is delivered.</div></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ======================= DATA ======================= -->
+<section id="view-data" hidden>
+  <div class="eyebrow">Data collected today</div>
+  <h1>Every delivery, logged as it happens</h1>
+  <p>The app records each package's dock arrival, wait on the dock, lift, time in the stratum and delivery. Packages that got an ETA also carry the band the app promised, so you can check whether the promises were honest.</p>
+  <div class="kpis" id="dataKpis"></div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Were the ETA bands honest?</h2>
+      <div class="note">Each line is the 80% band the app gave when a package reached the dock; the dot is when it really arrived. About 8 in 10 dots should land inside their line.</div>
+      <div class="chartbox" id="calChart"></div>
+      <div class="note" id="calNote" style="margin-top:6px"></div>
+    </div>
+    <div class="card">
+      <h2>Deliveries through the day</h2>
+      <div class="note">Packages delivered and reaching the dock, per 15 minutes of block time.</div>
+      <div class="chartbox" id="flowChart"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>What the numbers rest on</h2>
+      <div class="note">Every number the simulation uses that changes an ETA. Type in your field-kit results to replace an assumption.</div>
+      <div id="params" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h2>Little's law, today</h2>
+      <div class="note">The A3 known result, on this run: average packages inside the system against arrival rate × average time inside.</div>
+      <div id="little" style="margin-top:10px"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between">
+      <h2>Delivery log</h2>
+      <div class="row"><button class="btn small" id="btnCsv">Save CSV</button><button class="btn small" id="btnCopy">Copy CSV</button><span class="note" id="copyNote"></span></div>
+    </div>
+    <div class="tablewrap"><table id="logTable"></table></div>
+  </div>
+</section>
+
+<!-- ======================= EXPLAIN ======================= -->
+<section id="view-explain" hidden>
+  <div class="eyebrow">For anyone, no design background needed</div>
+  <h1>What the stratum is, and how much it can carry</h1>
+  <p>Under the plaza runs a single lane, one storey down: the stratum. Deliveries arrive at a loading dock on the street, one lift lowers them, and small robots carry them along the lane to four buildings. The charts below come from the same simulation as the map, run thousands of times.</p>
+  <div class="xp">
+    <div class="verdict" id="verdicts"></div>
+    <div class="card"><h2>1 · The journey of one package</h2><div class="note">Left to right: what happens, how long it takes, and how many per hour each step can handle. The narrowest step sets the pace for everything.</div><div class="chartbox" id="flowSvg"></div></div>
+    <div class="card"><h2>2 · How much per day</h2><div class="note">Carts delivered in a 16-hour operating day, for each way of running the lane. The solid bar is what runs without carts spilling onto the curb; the pale extension is the most it can carry before the dock queue grows without end.</div><div class="chartbox" id="daySvg"></div>
+      <div class="row" style="margin-top:10px"><button class="btn small" id="btnRecalc">Recompute for the map's current settings</button><span class="note" id="recalcNote"></span></div></div>
+    <div class="card"><h2>3 · Intermediate scales of operation</h2><div class="note">From one building to the full block and beyond: carts per day at each step up, and what each step needs.</div><div class="chartbox" id="scaleSvg"></div></div>
+    <div class="grid2" style="margin-top:0">
+      <div class="card"><h2>4 · Can it run through floor plenums?</h2><div class="note">Heights drawn to scale. A plenum is the void under a raised floor.</div><div class="chartbox" id="plenumSvg"></div></div>
+      <div class="card"><h2>5 · Can it swarm?</h2><div class="note">How many robots can be in the lane at once, and whether they jam.</div><div class="chartbox" id="swarmSvg"></div></div>
+    </div>
+    <div class="card"><h2>How we know, and what we don't</h2><div id="howKnow"></div></div>
+  </div>
+</section>
+</main>
+
+<script>
+/* UnderTheBlock simulation core — the same rules as the A3 toy (cells, passing bays, dock lift, jams),
+   plus: random arrivals and lingering when given an rng, fixed destinations per package, event hooks. */
+const SETTINGS = {
+  CART_W_M: 0.8,
+  CART_H_M: 1.2,
+  TRENCH_DEPTH_M: 4,
+  LIFT_SHAFT_W_M: 1.3,
+  DOCK_CAPACITY: 5,
+  BUILDING_COUNT: 4,
+  OFFICE_FLOORS: 4,
+
+  CELL_COUNT: 17,
+  HUB_CELL: 16,
+  BUILDING_CELLS: [12, 8, 4, 0],
+
+  TRUNK_STEP_TIME_MIN: 0.15,
+
+  LINGER_PROBABILITY: 0.05,
+  LINGER_MIN_MIN: 1,
+  LINGER_MAX_MIN: 2.5,
+
+  OUTGOING_RATE_PER_BUILDING_PER_HR: 3,
+
+  DEADLOCK_STALL_MINUTES: 6,
+
+  MAX_DRAWN_QUEUE: 8,
+  MAX_MANIFEST_ENTRIES: 8,
+
+  WAVE_PERIOD_MIN: 60,
+  SIM_MINUTES_PER_SEC: 2,
+
+  ARRIVAL_RATE_DEFAULT: 16,
+  CYCLE_TIME_DEFAULT: 2,
+
+  QUEUE_EASE: 0.25,
+  TRENCH_EASE: 0.3,
+
+  DRY_RUN_HORIZON_MIN: 120,
+  DRY_RUN_STEP_MIN: 0.05,
+};
+
+/* ============================================================
+   THE TRENCH TOPOLOGY — cells, choke points, passing-bay placement
+   ============================================================ */
+const SPECIAL_CELLS = new Set([SETTINGS.HUB_CELL, ...SETTINGS.BUILDING_CELLS]);
+
+function candidatePassingCells() {
+  const cands = [];
+  for (let i = 0; i < SETTINGS.CELL_COUNT; i++) if (!SPECIAL_CELLS.has(i)) cands.push(i);
+  return cands;
+}
+const PASSING_CANDIDATES = candidatePassingCells();
+
+function trafficLoad(i) {
+  return SETTINGS.BUILDING_CELLS.filter((bc) => bc < i).length;
+}
+function isChokePoint(i) {
+  return SPECIAL_CELLS.has(i - 1) || SPECIAL_CELLS.has(i + 1);
+}
+const PASSING_PRIORITY = PASSING_CANDIDATES.slice().sort((a, b) => {
+  const ca = isChokePoint(a), cb = isChokePoint(b);
+  if (ca !== cb) return ca ? -1 : 1;
+  return trafficLoad(b) - trafficLoad(a) || a - b;
+});
+const REQUIRED_CHOKE_POINT_COUNT = PASSING_CANDIDATES.filter(isChokePoint).length;
+
+function passingBaySetFor(count, order) {
+  const n = Math.max(0, Math.min(Math.round(count), PASSING_CANDIDATES.length));
+  return new Set((order || PASSING_PRIORITY).slice(0, n));
+}
+function cellCapacity(i, pbSet) {
+  return pbSet.has(i) ? 2 : 1;
+}
+
+function hash01(i) {
+  const x = Math.sin(i * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+
+function defaultPolicy() {
+  return { buildingRouting: [0, 1, 2, 3] };
+}
+
+/* ============================================================
+   THE SIMULATION CORE (unchanged)
+   ============================================================ */
+function freshLogicalState() {
+  return {
+    simMinutes: 0,
+    arrivalAcc: 0,
+    queue: [],
+    nextCartId: 0,
+    lift: { state: 'idle', timer: 0 },
+    pendingHandoff: null,
+    cellOccupants: Array.from({ length: SETTINGS.CELL_COUNT }, () => []),
+    trunkEntities: [],
+    nextEntityId: 0,
+    routePtr: 0,
+    outgoingAcc: new Array(SETTINGS.BUILDING_COUNT).fill(0),
+    trunkMoveAcc: 0,
+    completedLift: 0,
+    deliveredCount: 0,
+    perBuildingDelivered: new Array(SETTINGS.BUILDING_COUNT).fill(0),
+    outgoingCollected: 0,
+    curbMinutes: 0,
+    curbEverOccurred: false,
+    curbFailureMinute: null,
+    deadlocked: false,
+    deadlockMinute: null,
+    deadlockEntityIds: null,
+    stallMinutes: 0,
+    // Little's law bookkeeping (inbound carts only: dock arrival -> delivery at the tenant cell)
+    ll: { arrT: new Map(), arrivals: 0, departures: 0, sumW: 0, areaL: 0, inSystem: 0, liftCart: null, maxQueue: 0 },
+    dest: new Map(),          // cartId -> tenant index, fixed when the package reaches the dock
+    maxInTrench: 0,
+  };
+}
+
+// arrivals: 'wave' = the one-hour morning wave (A2); 'steady' = a constant rate, for the Little's law check
+let arrivalMode = 'wave';
+
+// a delivered inbound cart leaves the system: record its time in system W
+function recordDeparture(s, e) {
+  const L = s.ll, t0 = L.arrT.get(e.cartId);
+  if (t0 === undefined) return;
+  L.arrT.delete(e.cartId);
+  L.departures++; L.sumW += s.simMinutes - t0; L.inSystem--;
+}
+// Little's law over the run so far: L = time-average carts in system, lambda = arrivals / T, W = mean time in system
+function littleStats(s, cycleTime) {
+  const L = s.ll, T = s.simMinutes;
+  const lam = T > 0 ? L.arrivals / T : 0;            // carts per minute
+  const W = L.departures > 0 ? L.sumW / L.departures : 0;  // minutes
+  const Lbar = T > 0 ? L.areaL / T : 0;
+  const lamW = lam * W;
+  const err = Lbar > 0.01 ? (lamW - Lbar) / Lbar : null;
+  const mu = 60 / cycleTime;                          // dock lift, carts per hour
+  return { T, lam, lamHr: lam * 60, W, Lbar, lamW, err, inside: L.inSystem, arrivals: L.arrivals,
+    departures: L.departures, mu, rho: (lam * 60) / mu, queue: s.queue.length, maxQueue: L.maxQueue };
+}
+
+function waveRate(simMinutes, peakRate) {
+  if (arrivalMode === 'steady') return peakRate;
+  const t = simMinutes % SETTINGS.WAVE_PERIOD_MIN;
+  const phase = Math.max(0, Math.sin((Math.PI * t) / SETTINGS.WAVE_PERIOD_MIN));
+  return peakRate * phase;
+}
+
+function tryMoveEntity(s, e, pbSet, opts) {
+  const next = e.cell + e.dir;
+  if (next < 0 || next >= SETTINGS.CELL_COUNT) return false;
+  const occ = s.cellOccupants[next];
+  if (occ.length >= cellCapacity(next, pbSet)) return false;
+
+  s.cellOccupants[e.cell].splice(s.cellOccupants[e.cell].indexOf(e), 1);
+  e.cell = next;
+  occ.push(e);
+
+  const rng = opts && opts.rng;
+  if (pbSet.has(next) && (rng ? rng() : hash01(e.id)) < SETTINGS.LINGER_PROBABILITY) {
+    const h2 = rng ? rng() : hash01(e.id * 7 + 3);
+    e.lingerUntil = s.simMinutes + SETTINGS.LINGER_MIN_MIN + h2 * (SETTINGS.LINGER_MAX_MIN - SETTINGS.LINGER_MIN_MIN);
+  }
+  if (e.cell === e.targetCell) {
+    occ.splice(occ.indexOf(e), 1);
+    e.removed = true;
+    if (e.kind === 'inbound') {
+      s.deliveredCount++;
+      s.perBuildingDelivered[e.buildingIndex]++;
+      recordDeparture(s, e);
+      if (opts && opts.onDelivered) opts.onDelivered(e.buildingIndex);
+      if (opts && opts.onEvent) opts.onEvent('delivered', e.cartId, { cell: e.cell, b: e.buildingIndex });
+    } else {
+      s.outgoingCollected++;
+    }
+  }
+  return true;
+}
+
+// live play only: robots stuck nose to nose beside a passing lane are waved past each other
+function untangleHeadOn(s, pbSet, opts) {
+  let any = false;
+  const arrive = (e) => {
+    if (e.cell !== e.targetCell) return;
+    const occ = s.cellOccupants[e.cell];
+    occ.splice(occ.indexOf(e), 1); e.removed = true;
+    if (e.kind === 'inbound') { s.deliveredCount++; s.perBuildingDelivered[e.buildingIndex]++; recordDeparture(s, e); if (opts && opts.onDelivered) opts.onDelivered(e.buildingIndex); if (opts && opts.onEvent) opts.onEvent('delivered', e.cartId, { cell: e.cell, b: e.buildingIndex }); }
+    else s.outgoingCollected++;
+  };
+  for (let pass = 0; pass < 4; pass++) {
+    let did = false;
+    for (const a of s.trunkEntities) {
+      if (a.removed || a.dir !== -1 || a.held || a.cell === a.targetCell) continue;
+      const c = a.cell - 1;
+      if (c < 0 || !(pbSet.has(c) || pbSet.has(a.cell))) continue;
+      const b = s.cellOccupants[c].find((x) => x.dir === 1 && !x.removed && !x.held);
+      if (!b) continue;
+      const oa = s.cellOccupants[a.cell], ob = s.cellOccupants[c];
+      oa.splice(oa.indexOf(a), 1); ob.splice(ob.indexOf(b), 1);
+      b.cell = a.cell; a.cell = c; ob.push(a); oa.push(b);
+      a.lingerUntil = b.lingerUntil = null;
+      arrive(a); arrive(b);
+      did = any = true;
+    }
+    if (!did) break;
+  }
+  s.trunkEntities = s.trunkEntities.filter((e) => !e.removed);
+  return any;
+}
+
+function findDeadlockCycle(s, pbSet) {
+  const waitsFor = new Map();
+  for (const e of s.trunkEntities) {
+    if (e.removed || e.lingerUntil !== null || e.held) continue;
+    const next = e.cell + e.dir;
+    if (next < 0 || next >= SETTINGS.CELL_COUNT) continue;
+    const occ = s.cellOccupants[next];
+    if (occ.length >= cellCapacity(next, pbSet)) waitsFor.set(e.id, occ.map((o) => o.id));
+  }
+  const color = new Map();
+  function dfs(id, stack) {
+    color.set(id, 1); stack.push(id);
+    for (const n of waitsFor.get(id) || []) {
+      if (n === id) continue;
+      if (color.get(n) === 1) return stack.slice(stack.indexOf(n));
+      if (!color.get(n)) { const found = dfs(n, stack); if (found) return found; }
+    }
+    stack.pop(); color.set(id, 2);
+    return null;
+  }
+  for (const id of waitsFor.keys()) if (!color.get(id)) { const c = dfs(id, []); if (c) return c; }
+  return null;
+}
+
+function doOneTrunkRound(s, pbSet, opts) {
+  let anyMove = false, anyHeld = false;
+  if (s.untangle) { s.untangle = false; if (untangleHeadOn(s, pbSet, opts)) anyMove = true; }
+  for (const e of s.trunkEntities) {
+    if (e.removed) continue;
+    if (e.held) { anyHeld = true; continue; }   // the player is holding this robot
+    if (e.lingerUntil !== null) {
+      if (s.simMinutes < e.lingerUntil) continue;
+      e.lingerUntil = null;
+    }
+    if (tryMoveEntity(s, e, pbSet, opts)) anyMove = true;
+  }
+  s.trunkEntities = s.trunkEntities.filter((e) => !e.removed);
+
+  // live play only: a jam the player has opened up (a new passing lane) clears
+  if (s.deadlocked && opts && opts.recover && anyMove && !findDeadlockCycle(s, pbSet)) {
+    s.deadlocked = false; s.deadlockMinute = null; s.deadlockEntityIds = null; s.stallMinutes = 0;
+  }
+  if (!s.deadlocked) {
+    const cyc = findDeadlockCycle(s, pbSet);
+    if (cyc) { s.deadlocked = true; s.deadlockMinute = s.simMinutes; s.deadlockEntityIds = cyc; }
+  }
+  if (anyHeld) { /* a held robot is the player's choice, not a stall */ }
+  else if (!anyMove && s.trunkEntities.length > 0) {
+    s.stallMinutes += SETTINGS.TRUNK_STEP_TIME_MIN;
+    if (!s.deadlocked && s.stallMinutes > SETTINGS.DEADLOCK_STALL_MINUTES) {
+      s.deadlocked = true; s.deadlockMinute = s.simMinutes; s.deadlockEntityIds = null;
+    }
+  } else {
+    s.stallMinutes = 0;
+  }
+}
+
+function stepLogical(s, dtMinutes, policy, arrivalRate, cycleTime, passingBayCount, opts) {
+  s.ll.areaL += s.ll.inSystem * dtMinutes;   // integrate L(t) dt over this step
+  s.simMinutes += dtMinutes;
+  const pbSet = passingBaySetFor(passingBayCount, opts && opts.order);
+
+  const ratePerMin = waveRate(s.simMinutes, arrivalRate) / 60;
+  const pushArrival = () => {
+    const cid = s.nextCartId++;
+    s.queue.push(cid);
+    s.dest.set(cid, policy.buildingRouting[s.routePtr % policy.buildingRouting.length]); s.routePtr++;
+    s.ll.arrT.set(cid, s.simMinutes); s.ll.arrivals++; s.ll.inSystem++;
+    if (opts && opts.onEvent) opts.onEvent('dock', cid, { b: s.dest.get(cid) });
+  };
+  if (opts && opts.rng) {
+    let expect = ratePerMin * dtMinutes;               // Poisson arrivals: small steps, at most a few per step
+    while (expect > 0) { const p = Math.min(1, expect); if (opts.rng() < p) pushArrival(); expect -= 1; }
+  } else {
+    s.arrivalAcc += ratePerMin * dtMinutes;
+    while (s.arrivalAcc >= 1) { s.arrivalAcc -= 1; pushArrival(); }
+  }
+  if (s.queue.length > s.ll.maxQueue) s.ll.maxQueue = s.queue.length;
+
+  const curbCount = Math.max(0, s.queue.length - SETTINGS.DOCK_CAPACITY);
+  s.curbMinutes += curbCount * dtMinutes;
+  if (curbCount > 0 && !s.curbEverOccurred) { s.curbEverOccurred = true; s.curbFailureMinute = s.simMinutes; }
+
+  if (s.lift.state === 'idle' && s.queue.length > 0 && s.pendingHandoff === null) {
+    s.ll.liftCart = s.queue.shift(); s.lift.state = 'cycling'; s.lift.timer = 0;
+    if (opts && opts.onEvent) opts.onEvent('lift', s.ll.liftCart, {});
+  }
+  if (s.lift.state === 'cycling') {
+    s.lift.timer += dtMinutes;
+    if (s.lift.timer / cycleTime >= 1) {
+      s.completedLift++;
+      const cid = s.ll.liftCart;
+      s.pendingHandoff = { targetBuildingIdx: s.dest.has(cid) ? s.dest.get(cid) : 0, cartId: cid };
+      s.dest.delete(cid);
+      if (opts && opts.onEvent) opts.onEvent('down', cid, {});
+      s.lift.state = 'idle'; s.lift.timer = 0;
+    }
+  }
+  if (s.pendingHandoff !== null) {
+    const hub = SETTINGS.HUB_CELL;
+    if (s.cellOccupants[hub].length < cellCapacity(hub, pbSet)) {
+      const e = {
+        id: s.nextEntityId++, kind: 'inbound', dir: -1, cell: hub,
+        targetCell: SETTINGS.BUILDING_CELLS[s.pendingHandoff.targetBuildingIdx],
+        buildingIndex: s.pendingHandoff.targetBuildingIdx, lingerUntil: null, removed: false,
+        cartId: s.pendingHandoff.cartId,
+      };
+      s.cellOccupants[hub].push(e); s.trunkEntities.push(e); s.pendingHandoff = null;
+      if (opts && opts.onEvent) opts.onEvent('trench', e.cartId, { b: e.buildingIndex });
+    }
+  }
+
+  for (let b = 0; b < SETTINGS.BUILDING_COUNT; b++) {
+    if (opts && opts.noOutgoing) continue;
+    if (opts && opts.mailFrom && !opts.mailFrom.includes(b)) continue;   // known-result check: dock lift on its own, no opposing traffic
+    s.outgoingAcc[b] += (SETTINGS.OUTGOING_RATE_PER_BUILDING_PER_HR / 60) * dtMinutes;
+    while (s.outgoingAcc[b] >= 1) {
+      s.outgoingAcc[b] -= 1;
+      const cellIdx = SETTINGS.BUILDING_CELLS[b];
+      if (s.cellOccupants[cellIdx].length < cellCapacity(cellIdx, pbSet)) {
+        const e = { id: s.nextEntityId++, kind: 'outgoing', dir: 1, cell: cellIdx, targetCell: SETTINGS.HUB_CELL, buildingIndex: b, lingerUntil: null, removed: false };
+        s.cellOccupants[cellIdx].push(e); s.trunkEntities.push(e);
+      } else {
+        s.outgoingAcc[b] += 1;
+        break;
+      }
+    }
+  }
+
+  s.trunkMoveAcc += dtMinutes;
+  let rounds = 0;
+  while (s.trunkMoveAcc >= SETTINGS.TRUNK_STEP_TIME_MIN && rounds < 4000) {
+    s.trunkMoveAcc -= SETTINGS.TRUNK_STEP_TIME_MIN;
+    doOneTrunkRound(s, pbSet, opts);
+    rounds++;
+  }
+  const inbound = s.trunkEntities.length;
+  if (inbound > s.maxInTrench) s.maxInTrench = inbound;
+}
+
+/* a package someone ordered: joins the dock queue now, bound for one tenant */
+function injectArrival(s, dest, opts) {
+  const cid = s.nextCartId++;
+  s.queue.push(cid); s.dest.set(cid, dest);
+  s.ll.arrT.set(cid, s.simMinutes); s.ll.arrivals++; s.ll.inSystem++;
+  if (opts && opts.onEvent) opts.onEvent('dock', cid, { b: dest, ordered: true });
+  return cid;
+}
+/* seeded random numbers, so a future can be replayed */
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+
+function setArrivalMode(m) { arrivalMode = m; }
+
+</script>
+<script>
+(function () {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const TEN = ['A', 'B', 'C', 'D'];
+const DAY_START = 6 * 60;   // block time starts 06:00
+const clk = (m) => { const t = Math.round(DAY_START + m); const h = Math.floor(t / 60) % 24, mm = ((t % 60) + 60) % 60; return String(h).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); };
+const f = (v, d = 1) => (v == null || !isFinite(v)) ? '—' : v.toFixed(d);
+const q = (a, p) => { if (!a.length) return null; const b = a.slice().sort((x, y) => x - y); const i = p * (b.length - 1); const lo = Math.floor(i), hi = Math.ceil(i); return b[lo] + (b[hi] - b[lo]) * (i - lo); };
+
+/* ============================================================
+   PARAMETERS (tagged)
+   ============================================================ */
+const P = {
+  rate: { v: 16, tag: 'assumed', what: 'Arrivals at the dock', unit: 'carts/hr', src: 'chosen in the A2 chat' },
+  cycle: { v: 2, tag: 'assumed', what: 'Dock lift cycle', unit: 'min', src: 'chosen in the A2 chat' },
+  step: { v: SETTINGS.TRUNK_STEP_TIME_MIN, tag: 'assumed', what: 'Time to cross one 2.3 m row', unit: 'min', src: 'chosen in the A2 chat (≈0.26 m/s)' },
+  mail: { v: SETTINGS.OUTGOING_RATE_PER_BUILDING_PER_HR, tag: 'assumed', what: 'Outgoing mail per building', unit: 'carts/hr', src: 'chosen in the A2 chat' },
+  linger: { v: SETTINGS.LINGER_PROBABILITY * 100, tag: 'assumed', what: 'Carts that pause in a bay (1–2.5 min)', unit: '%', src: 'chosen in the A2 chat' },
+  van: { v: '3–8', tag: 'assumed', what: 'Van trip, order to dock', unit: 'min', src: 'placeholder for the street leg' },
+  perCart: { v: '10–30', tag: 'assumed', what: 'Parcels per cart (0.8 × 0.8 × 1.05 m)', unit: 'parcels', src: 'estimate from cart volume' },
+};
+
+/* ============================================================
+   LIVE STATE
+   ============================================================ */
+let sim, rngLive, seedDay = 1, running = true, speed = 1;
+let mode = 'wave', ctrl = true, mailOn = true;
+let bays = new Set(PASSING_PRIORITY.slice(0, 10));       // passing-bay rows, editable on the map
+const policy = { buildingRouting: [0, 1, 2, 3] };
+let recs = new Map();       // cartId -> record
+let vans = [];              // ordered packages still on the street: {oid, dest, t0, dur, rec}
+let orderSeq = 0, tracked = null, follow = true, buildMode = false, chosenTenant = 2;
+let notes = [];
+let forecastStamp = 0;
+const disp = new Map();     // display positions for animation
+
+function bayOrder() { return [...bays].sort((a, b) => b - a); }
+function bayLabel(cell) { const o = bayOrder(); const i = o.indexOf(cell); return i < 0 ? null : 'P' + (i + 1); }
+function simOpts(extra) {
+  return Object.assign({ rng: rngLive, recover: true, order: bayOrder(), noOutgoing: !mailOn, onEvent: onEvent }, extra || {});
+}
+
+function newDay() {
+  seedDay = (seedDay * 48271) % 2147483647 || 7;
+  sim = freshLogicalState();
+  rngLive = mulberry32(seedDay);
+  recs = new Map(); vans = []; notes = []; tracked = null; orderSeq = 0; disp.clear();
+  setArrivalMode(mode);
+  renderNotes(); renderSheet(); renderData();
+}
+
+/* ============================================================
+   EVENTS -> RECORDS -> NOTIFICATIONS
+   ============================================================ */
+function onEvent(type, cid, info) {
+  const t = sim.simMinutes;
+  let r = recs.get(cid);
+  if (type === 'dock') {
+    if (!r) { r = { cid, dest: info.b, ordered: false, label: 'UTB-' + String(1000 + cid) }; recs.set(cid, r); }
+    r.tDock = t;
+    if (r.ordered || cid % 3 === 0) r.wantBand = true;      // ETA band for ordered packages and every 3rd other (3 and 4 tenants share no factor, so all tenants get sampled)
+    if (r.ordered) notify(r, `<b>Arrived at the loading dock.</b> ${esc(r.label)} is dwelling on the dock, waiting for the lift.`, 'good', 'Arrived');
+    return;
+  }
+  if (!r) return;
+  if (type === 'lift') { r.tLift = t; if (r === recs.get(tracked)) notify(r, `<b>On the dock lift.</b> Lowering into the stratum.`, '', 'Moving'); }
+  if (type === 'down') { r.tDown = t; }
+  if (type === 'trench') { r.tTrench = t; if (r === recs.get(tracked)) notify(r, `<b>In the stratum.</b> Row 16, heading west to Tenant ${TEN[r.dest]}'s lift at row ${SETTINGS.BUILDING_CELLS[r.dest]}.`, '', 'Stratum'); }
+  if (type === 'delivered') {
+    r.tDeliv = t;
+    const hit = r.band0 ? (t >= r.band0.p10 - 0.01 && t <= r.band0.p90 + 0.01) : null;
+    r.hit = hit;
+    if (r.ordered || r === recs.get(tracked)) notify(r, `<b>Delivered to Tenant ${TEN[r.dest]}</b> at ${clk(t)}${r.band0 ? (hit ? ', inside the promised window.' : `, <span class="bad">outside the promised window</span> (${clk(r.band0.p10)}–${clk(r.band0.p90)}).`) : '.'}`, hit === false ? 'warn' : 'good', 'Delivered');
+  }
+}
+function notify(r, html, cls, title) {
+  notes.unshift({ t: sim.simMinutes, html, cls: cls === 'good' ? 'pos' : cls, cid: r ? r.cid : null });
+  if (notes.length > 60) notes.pop();
+  renderNotes();
+  const box = $('toasts'); const el = document.createElement('div');
+  el.className = 'toast' + (cls === 'warn' ? ' warn' : '');
+  el.innerHTML = `<div class="tt">${esc(title || 'Update')} · ${clk(sim.simMinutes)}</div>${html}`;
+  box.prepend(el);
+  const maxT = window.innerWidth < 720 ? 1 : 3;
+  while (box.children.length > maxT) box.lastChild.remove();
+  setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 450); }, 5200);
+}
+function renderNotes() {
+  const h = notes.map((n) => `<div class="n ${n.cls}"><div class="tm">${clk(n.t)}</div><div class="x">${n.html}</div></div>`).join('');
+  $('notes').innerHTML = h || '<div class="note">Nothing yet. You will hear when your package reaches the dock, enters the stratum, and is delivered.</div>';
+  $('noteCount').textContent = notes.length ? notes.length + ' today' : '';
+}
+
+/* ============================================================
+   ORDERING (the street leg is outside the simulation: an assumed 3–8 min)
+   ============================================================ */
+function order(dest) {
+  const oid = ++orderSeq;
+  const dur = 3 + rngLive() * 5;
+  const rec = { cid: null, oid, dest, ordered: true, label: 'UTB-' + String(9000 + oid), tOrder: sim.simMinutes, vanDur: dur };
+  vans.push({ oid, dest, t0: sim.simMinutes, dur, rec });
+  tracked = 'o' + oid; follow = true;
+  notify(rec, `<b>Ordered</b> to Tenant ${TEN[dest]}. A van is on its way to the dock.`, '', 'Ordered');
+  forecastStamp = 0;
+}
+function trackedRec() {
+  if (tracked == null) return null;
+  if (typeof tracked === 'string') { const v = vans.find((x) => 'o' + x.oid === tracked); if (v) return v.rec; for (const r of recs.values()) if ('o' + r.oid === tracked) { tracked = r.cid; return r; } return null; }
+  return recs.get(tracked) || null;
+}
+
+/* ============================================================
+   FORECAST — run the same simulation forward many times with fresh randomness
+   ============================================================ */
+const FORKS = 32, HORIZON = 150;
+function forecast(rec, n) {
+  n = n || FORKS;
+  const base = structuredClone(sim);
+  const t0 = base.simMinutes;
+  const times = []; let jams = 0, open = 0;
+  const vanLeft = rec.cid == null ? rec : null;
+  for (let k = 0; k < n; k++) {
+    const s = k === n - 1 ? base : structuredClone(base);
+    const rng = mulberry32(((t0 * 1000) | 0) + k * 7919 + (rec.oid || rec.cid || 0) * 104729 + 13);
+    let target = rec.cid, done = null, injectAt = null;
+    if (vanLeft) { const el = t0 - rec.tOrder; const lo = Math.max(3, el), hi = Math.max(lo + 0.01, 8); injectAt = rec.tOrder + lo + rng() * (hi - lo); }
+    const opts = { rng, recover: true, order: bayOrder(), noOutgoing: !mailOn, onEvent: (type, c) => { if (type === 'delivered' && c === target) done = s.simMinutes; } };
+    let stuck = 0;
+    while (s.simMinutes < t0 + HORIZON && done == null) {
+      if (injectAt != null && s.simMinutes >= injectAt) { target = injectArrival(s, rec.dest); injectAt = null; }
+      if (ctrl) s.untangle = true;
+      stepLogical(s, 0.05, policy, P.rate.v, P.cycle.v, bays.size, opts);   // same step as the live run, or the bands drift
+      if (s.deadlocked) { stuck += 0.05; if (stuck > 12) break; } else stuck = 0;
+    }
+    if (done != null) times.push(done); else if (stuck > 12) jams++; else open++;
+  }
+  return { n, p10: q(times, 0.1), p50: q(times, 0.5), p90: q(times, 0.9), ok: times.length, jams, open, at: t0 };
+}
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+let last = performance.now(), simAcc = 0;
+const STEP = 0.05;   // fixed simulation step; the forecasts use the same one
+function frame(now) {
+  const dtReal = Math.min(0.1, (now - last) / 1000); last = now;
+  if (running && document.visibilityState !== 'hidden') {
+    simAcc += dtReal * speed;
+    while (simAcc >= STEP - 1e-9) {
+      const d = STEP; simAcc -= STEP;
+      // vans reaching the dock
+      for (let i = vans.length - 1; i >= 0; i--) {
+        const v = vans[i];
+        if (sim.simMinutes - v.t0 >= v.dur) {
+          vans.splice(i, 1);
+          const cid = sim.nextCartId;
+          v.rec.cid = cid; recs.set(cid, v.rec);
+          injectArrival(sim, v.dest, { onEvent });
+          if (tracked === 'o' + v.oid) tracked = cid;
+        }
+      }
+      if (ctrl) sim.untangle = true;
+      const wasDead = sim.deadlocked;
+      stepLogical(sim, d, policy, P.rate.v, P.cycle.v, bays.size, simOpts());
+      if (sim.deadlocked && !wasDead) {
+        const r = trackedRec();
+        notify(r, `<b>The stratum has jammed</b> at ${clk(sim.simMinutes)}: two carts face each other with no bay to pass. ${ctrl ? 'Add a passing bay near the jam.' : 'Turn on the traffic controller or add a bay.'}`, 'warn', 'Jam');
+      }
+      // bands at dock arrival
+      for (const r of recs.values()) if (r.wantBand && !r.band0 && r.tDock != null) { r.band0 = forecast(r, r.ordered ? FORKS : 16); r.wantBand = false; if (r === trackedRec()) r.band = r.band0; }
+    }
+    // keep the tracked package's band fresh
+    const r = trackedRec();
+    if (r && r.tDeliv == null && now - forecastStamp > 700) {
+      forecastStamp = now;
+      r.band = forecast(r, FORKS);
+      if (r.band0 && !r.lateSaid && sim.simMinutes > r.band0.p90 && r.band0.p90 != null) { r.lateSaid = true; notify(r, `<b>Running late.</b> Past the end of the window promised at the dock (${clk(r.band0.p90)}).`, 'warn', 'Late'); }
+    }
+  }
+  draw();
+  if (now - (frame._ui || 0) > 250) { frame._ui = now; renderSheet(); renderDay(); if (view === 'data') renderData(); }
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   WHERE IS A CART
+   ============================================================ */
+function locate(r) {
+  if (!r) return null;
+  if (r.cid == null) { const v = vans.find((x) => x.rec === r); if (v) return { kind: 'van', prog: Math.min(1, (sim.simMinutes - v.t0) / v.dur) }; }
+  if (r.tDeliv != null) return { kind: 'done' };
+  const qi = sim.queue.indexOf(r.cid);
+  if (qi >= 0) return { kind: 'dock', pad: qi };
+  if (sim.lift.state === 'cycling' && sim.ll.liftCart === r.cid) return { kind: 'lift', prog: sim.lift.timer / P.cycle.v };
+  if (sim.pendingHandoff && sim.pendingHandoff.cartId === r.cid) return { kind: 'shaft' };
+  const e = sim.trunkEntities.find((x) => x.cartId === r.cid);
+  if (e) return { kind: 'trench', cell: e.cell, e };
+  return null;
+}
+function locText(loc, r) {
+  if (!loc) return ['—', ''];
+  switch (loc.kind) {
+    case 'van': return ['On the street', `Van to the dock · ${Math.round(loc.prog * 100)}% of the way`];
+    case 'dock': return loc.pad < SETTINGS.DOCK_CAPACITY ? [`Dock pad ${loc.pad + 1}`, `Arrived · dwelling on the loading dock · ${loc.pad === 0 ? 'next for the lift' : loc.pad + ' ahead of it'}`] : ['At the curb', `Dock full · ${loc.pad - SETTINGS.DOCK_CAPACITY + 1} past the 5 pads`];
+    case 'lift': return ['Dock lift', `Lowering into the stratum · ${Math.round(Math.min(1, loc.prog) * 100)}%`];
+    case 'shaft': return ['Foot of the shaft', 'Waiting for row 16 to clear'];
+    case 'trench': { const b = bayLabel(loc.cell); const moving = loc.e.lingerUntil == null; const to = SETTINGS.BUILDING_CELLS[r.dest];
+      return [b ? `Bay ${b} · row ${loc.cell}` : `Row ${loc.cell}`, `In the stratum · ${Math.abs(loc.cell - to)} rows to Tenant ${TEN[r.dest]}${!moving ? ' · pausing in the bay' : ''}`]; }
+    case 'done': return [`Tenant ${TEN[r.dest]}`, 'Delivered'];
+  }
+  return ['—', ''];
+}
+
+/* ============================================================
+   PACKAGE SHEET
+   ============================================================ */
+function renderSheet() {
+  const r = trackedRec();
+  $('pkgEmpty').hidden = !!r; $('pkgLive').hidden = !r;
+  $('btnFollow').classList.toggle('on', follow && !!r);
+  if (!r) return;
+  const loc = locate(r);
+  $('pkgId').textContent = r.label + (r.ordered ? ' · your order' : ' · followed');
+  $('pkgTitle').textContent = 'To Tenant ' + TEN[r.dest];
+  const [w, sub] = locText(loc, r);
+  $('pingWhere').textContent = w; $('pingSub').textContent = sub;
+  const pill = $('pkgPill');
+  const status = r.tDeliv != null ? 'Delivered' : loc && loc.kind === 'van' ? 'On the van' : loc && loc.kind === 'dock' ? 'Arrived · at dock' : loc && loc.kind === 'trench' ? 'In the stratum' : 'Lowering';
+  pill.textContent = status; pill.className = 'pill' + (r.tDeliv != null ? ' go' : sim.deadlocked ? ' warn' : '');
+  // ETA
+  const b = r.band, now = sim.simMinutes;
+  if (r.tDeliv != null) {
+    $('etaBig').innerHTML = `Delivered ${clk(r.tDeliv)} <small>${f(r.tDeliv - (r.tDock != null ? r.tDock : r.tOrder), 0)} min from the dock</small>`;
+  } else if (b && b.p50 != null) {
+    const mins = Math.max(0, b.p50 - now);
+    $('etaBig').innerHTML = `${mins < 1 ? 'Arriving now' : 'Arriving in ' + Math.round(mins) + ' min'} <small>about ${clk(b.p50)}</small>`;
+  } else if (b) {
+    $('etaBig').innerHTML = `No ETA <small>the futures do not finish</small>`;
+  } else $('etaBig').innerHTML = `Working out an ETA… <small></small>`;
+  const show = r.tDeliv != null ? r.band0 : b;
+  if (show && show.p10 != null) {
+    const lo = Math.min(now, show.p10) - 1, hi = Math.max(show.p90, r.tDeliv || 0, now) + 1, span = Math.max(1, hi - lo);
+    const X = (t) => ((t - lo) / span) * 100;
+    $('bandRng').style.left = X(show.p10) + '%'; $('bandRng').style.width = Math.max(1.5, X(show.p90) - X(show.p10)) + '%';
+    $('bandMed').style.left = X(show.p50) + '%'; $('bandNow').style.left = X(r.tDeliv != null ? r.tDeliv : now) + '%';
+    $('bandLo').textContent = clk(show.p10); $('bandMid').textContent = (r.tDeliv != null ? 'promised at the dock' : 'likely ' + clk(show.p50)); $('bandHi').textContent = clk(show.p90);
+    $('band').hidden = false;
+  } else { $('band').hidden = true; $('bandLo').textContent = $('bandMid').textContent = $('bandHi').textContent = ''; }
+  let hon = '';
+  if (show) {
+    if (show.ok) {
+      hon = `<b>${show.ok} of ${show.n}</b> simulated futures deliver it; 8 in 10 of those land between <b>${clk(show.p10)}</b> and <b>${clk(show.p90)}</b>.`;
+      if (show.jams) hon += ` <span class="bad">In ${show.jams} the stratum jams first, so no time is promised for those.</span>`;
+    } else if (show.jams) {
+      hon = `<span class="bad"><b>None of ${show.n} simulated futures deliver it:</b> in ${show.jams} the stratum stays jammed.</span> No time is promised. Add a passing bay next to the jam or turn on the traffic controller.`;
+    } else hon = `None of ${show.n} simulated futures finish within ${HORIZON} min.`;
+    if (show.open) hon += ` ${show.open} were still under way after ${HORIZON} min.`;
+    hon += ` The band covers random arrivals and pauses only; arrival rate and lift speed are <span class="tag a">assumed</span>, so the real spread is wider.`;
+  } else hon = 'The ETA comes from running this same simulation forward 32 times with fresh randomness.';
+  $('honest').innerHTML = hon;
+  // steps
+  const k = loc ? loc.kind : 'done';
+  const order = ['ordered', 'van', 'dock', 'lift', 'trench', 'done'];
+  const idx = r.tDeliv != null ? 6 : { van: 1, dock: 2, lift: 3, shaft: 3, trench: 4 }[k] ?? 2;
+  const dwell = r.tDock != null ? ((r.tLift != null ? r.tLift : now) - r.tDock) : null;
+  const items = [
+    ['Ordered', r.ordered ? clk(r.tOrder) : 'not your order', r.ordered ? `to Tenant ${TEN[r.dest]}` : 'followed from the map'],
+    ['On the van', r.ordered ? (r.tDock != null ? clk(r.tDock) : '') : '—', r.ordered ? 'street leg, assumed 3–8 min' : 'street leg not tracked'],
+    ['Arrived at the dock', r.tDock != null ? clk(r.tDock) : '', dwell != null ? `dwelling ${f(dwell, 1)} min on the dock` : 'waits on one of 5 pads'],
+    ['Lowered by the dock lift', r.tLift != null ? clk(r.tLift) : '', `${f(P.cycle.v, 1)}-min cycle, one cart at a time`],
+    ['Across the stratum', r.tTrench != null ? clk(r.tTrench) : '', `row 16 → row ${SETTINGS.BUILDING_CELLS[r.dest]}, ${16 - SETTINGS.BUILDING_CELLS[r.dest]} rows`],
+    ['Delivered to Tenant ' + TEN[r.dest], r.tDeliv != null ? clk(r.tDeliv) : (b && b.p50 != null ? '~' + clk(b.p50) : ''), 'at its building\'s lift'],
+  ];
+  $('steps').innerHTML = items.map((it, i) => {
+    const st = i < idx ? 'done' : i === idx ? (sim.deadlocked && i === 4 ? 'now bad' : 'now') : 'pending';
+    const skip = !r.ordered && i <= 1;
+    return `<li class="${skip ? 'pending' : st}"><span class="mk"></span><div><div class="t">${it[0]}</div><div class="d">${it[2]}</div></div><span class="w">${it[1]}</span></li>`;
+  }).join('');
+  const bayAhead = loc && loc.kind === 'trench' ? bayOrder().filter((c) => c < loc.cell && c > SETTINGS.BUILDING_CELLS[r.dest]).map(bayLabel) : bayOrder().filter((c) => c > SETTINGS.BUILDING_CELLS[r.dest]).map(bayLabel);
+  $('routeNote').innerHTML = `Route: dock lift → rows 16 to ${SETTINGS.BUILDING_CELLS[r.dest]} → Tenant ${TEN[r.dest]} lift. Passing bays on the way: ${bayAhead.length ? bayAhead.join(', ') : 'none'}. Tenant lifts are drawn but not simulated, so delivery counts when the cart reaches its building's row.`;
+}
+function renderDay() {
+  $('clock').textContent = clk(sim.simMinutes);
+  $('clockChip').classList.toggle('paused', !running);
+  const st = littleStats(sim, P.cycle.v);
+  const curb = Math.max(0, sim.queue.length - SETTINGS.DOCK_CAPACITY);
+  const h = `<div class="kpi"><div class="v">${sim.deliveredCount}</div><div class="l">delivered today</div></div>` +
+    `<div class="kpi"><div class="v">${sim.queue.length}<span style="font-size:13px;color:var(--dim)"> / 5</span></div><div class="l">on the dock${curb ? ` · <span class="bad">${curb} at the curb</span>` : ''}</div></div>` +
+    `<div class="kpi"><div class="v">${sim.trunkEntities.length}</div><div class="l">robots in the stratum</div></div>` +
+    `<div class="kpi"><div class="v">${f(st.W, 1)}</div><div class="l">avg minutes dock → tenant</div></div>` +
+    `<div class="kpi"><div class="v ${sim.deadlocked ? 'bad' : ''}">${sim.deadlocked ? 'JAMMED' : 'moving'}</div><div class="l">stratum status · ${bays.size} bays</div></div>`;
+  if ($('dayKpis')._h !== h) { $('dayKpis').innerHTML = h; $('dayKpis')._h = h; }
+}
+
+/* ============================================================
+   MAP
+   ============================================================ */
+const cv = $('map');
+let G = null;
+function layout() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const streetW = Math.max(44, W * 0.08), dockW = Math.max(60, W * 0.11);
+  const left = 18, right = W - streetW - dockW - 14;
+  const cw = (right - left) / SETTINGS.CELL_COUNT;
+  const yT = H * 0.64, ch = Math.min(cw * 0.95, H * 0.1);
+  return { dpr, W, H, streetW, dockW, left, right, cw, yT, ch,
+    x: (i) => left + (i + 0.5) * cw,
+    dockX: right + 10, liftX: right + 10 + dockW * 0.22, padX: right + 10 + dockW * 0.68,
+    padY: (k) => H * 0.24 + k * Math.min(30, H * 0.065), streetX: W - streetW,
+    bldY0: H * 0.06, bldY1: H * 0.36, tlY: H * 0.43 };
+}
+function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function targetPos(L, kind, info) {
+  if (kind === 'trench') { const e = info; const occ = sim.cellOccupants[e.cell]; const two = occ.length > 1 && bays.has(e.cell); const k = occ.indexOf(e);
+    return { x: L.x(e.cell), y: L.yT + (two ? (k === 0 ? -L.ch * 0.26 : L.ch * 0.9) : (bays.has(e.cell) && e.dir === 1 ? L.ch * 0.9 : 0)) }; }
+  if (kind === 'pad') { const k = info; if (k < SETTINGS.DOCK_CAPACITY) return { x: L.padX, y: L.padY(k) }; return { x: L.streetX + L.streetW * 0.5, y: L.padY(0) + (k - SETTINGS.DOCK_CAPACITY) * 16 }; }
+  if (kind === 'lift') return { x: L.liftX, y: L.padY(0) + (L.yT - L.padY(0)) * Math.min(1, info) };
+  if (kind === 'shaft') return { x: L.liftX, y: L.yT };
+  return { x: 0, y: 0 };
+}
+function ease(key, p) {
+  const d = disp.get(key);
+  if (!d) { disp.set(key, { x: p.x, y: p.y, seen: true }); return p; }
+  d.x += (p.x - d.x) * 0.22; d.y += (p.y - d.y) * 0.22; d.seen = true; return d;
+}
+function draw() {
+  const L = G = layout(); const g = cv.getContext('2d');
+  g.setTransform(L.dpr, 0, 0, L.dpr, 0, 0);
+  const { W, H } = L;
+  g.fillStyle = '#11181b'; g.fillRect(0, 0, W, H);
+  // street
+  g.fillStyle = '#0b1012'; g.fillRect(L.streetX, 0, L.streetW, H);
+  g.strokeStyle = '#3a4a50'; g.setLineDash([10, 10]); g.beginPath(); g.moveTo(L.streetX + L.streetW / 2, 0); g.lineTo(L.streetX + L.streetW / 2, H); g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#7b898b'; g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  g.save(); g.translate(L.streetX + L.streetW - 8, H * 0.86); g.rotate(-Math.PI / 2); g.fillText('STREET', 0, 0); g.restore();
+  // plaza
+  g.fillStyle = '#182124'; rr(g, 8, L.H * 0.4, L.right + 4, H * 0.56, 10); g.fill();
+  g.fillStyle = '#7b898b'; g.fillText('PLAZA · street level', 16, H * 0.96 - 10);
+  // buildings
+  SETTINGS.BUILDING_CELLS.forEach((c, b) => {
+    const w = Math.min(L.cw * 3.1, 120), x = Math.max(12 + w / 2, L.x(c));
+    g.fillStyle = '#222d31'; rr(g, x - w / 2, L.bldY0, w, L.bldY1 - L.bldY0, 6); g.fill();
+    g.strokeStyle = '#2f3d42'; g.stroke();
+    g.fillStyle = '#edf2f1'; g.font = '600 ' + Math.max(11, Math.min(15, w / 6)) + 'px ' + getComputedStyle(document.body).getPropertyValue('--sans');
+    g.textAlign = 'center'; g.fillText('Tenant ' + TEN[b], x, L.bldY0 + 20);
+    g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.fillStyle = '#7b898b';
+    g.fillText(sim.perBuildingDelivered[b] + ' today', x, L.bldY0 + 34);
+    // tenant lift + shaft to the stratum
+    const lx = L.x(c);
+    g.strokeStyle = '#3a4a50'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(lx, L.bldY1); g.lineTo(lx, L.yT - L.ch / 2); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#2d3a3f'; rr(g, lx - 9, L.tlY - 9, 18, 18, 4); g.fill(); g.strokeStyle = '#6cb6e0'; g.stroke();
+    g.fillStyle = '#6cb6e0'; g.fillText('lift ' + TEN[b], lx, L.tlY + 22);
+    g.textAlign = 'left';
+  });
+  // stratum
+  const yTop = L.yT - L.ch / 2;
+  g.fillStyle = 'rgba(9,13,15,0.85)'; rr(g, L.left - 4, yTop - 4, L.right - L.left + 8 + (L.liftX - L.right), L.ch + 8, 6); g.fill();
+  g.strokeStyle = '#6b7c80'; g.setLineDash([6, 4]); g.stroke(); g.setLineDash([]);
+  for (let i = 0; i < SETTINGS.CELL_COUNT; i++) {
+    const x = L.left + i * L.cw;
+    const isB = bays.has(i), isT = SETTINGS.BUILDING_CELLS.includes(i) || i === SETTINGS.HUB_CELL;
+    g.fillStyle = isB ? '#2f5a46' : isT ? '#1f2c30' : '#151d20';
+    rr(g, x + 1.5, yTop, L.cw - 3, L.ch, 3); g.fill();
+    if (isB) { g.fillStyle = '#2f5a46'; rr(g, x + 1.5, yTop + L.ch, L.cw - 3, L.ch * 0.95, 3); g.fill(); g.fillStyle = '#bdf2e0'; g.font = '600 10px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.textAlign = 'center'; g.fillText(bayLabel(i), x + L.cw / 2, yTop + L.ch * 1.95 - 5); }
+    if (buildMode && PASSING_CANDIDATES.includes(i)) { g.strokeStyle = '#8fd6b3'; g.setLineDash([2, 3]); rr(g, x + 1.5, yTop, L.cw - 3, L.ch * 1.95, 3); g.stroke(); g.setLineDash([]); }
+    g.fillStyle = '#7b898b'; g.font = '9.5px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.textAlign = 'center';
+    g.fillText(String(i), x + L.cw / 2, yTop - 8);
+  }
+  g.textAlign = 'left'; g.fillStyle = '#9fb0b2'; g.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  g.fillText('STRATUM · one lane, 2.3 m below the plaza · rows numbered from the west', L.left, yTop + L.ch * 2.4);
+  // dock
+  g.fillStyle = '#1d272b'; rr(g, L.dockX, L.H * 0.16, L.dockW, L.padY(4) - L.H * 0.16 + 26, 8); g.fill();
+  g.fillStyle = '#9fb0b2'; g.fillText('DOCK', L.dockX + 6, L.H * 0.16 + 14);
+  for (let k = 0; k < SETTINGS.DOCK_CAPACITY; k++) { g.strokeStyle = '#3d6b78'; rr(g, L.padX - 10, L.padY(k) - 10, 20, 20, 3); g.stroke(); }
+  // dock lift shaft
+  g.fillStyle = '#26343a'; rr(g, L.liftX - 11, L.padY(0) - 12, 22, L.yT - L.padY(0) + 12 + L.ch / 2, 5); g.fill();
+  g.strokeStyle = '#6cb6e0'; g.stroke();
+  g.save(); g.translate(L.liftX + 18, L.padY(0) + 4); g.rotate(Math.PI / 2); g.fillStyle = '#6cb6e0'; g.fillText('DOCK LIFT', 0, 0); g.restore();
+  g.strokeStyle = '#3a4a50'; g.beginPath(); g.moveTo(L.liftX - 11, L.yT); g.lineTo(L.right, L.yT); g.stroke();
+
+  // route for the tracked package
+  const r = trackedRec(); const loc = r ? locate(r) : null;
+  // vans on the street
+  for (const v of vans) {
+    const p = Math.min(1, (sim.simMinutes - v.t0) / v.dur);
+    const y = -30 + (L.padY(2) + 30) * p;
+    const mine = r === v.rec;
+    g.fillStyle = mine ? '#8fd6b3' : '#9fb0b2'; rr(g, L.streetX + L.streetW * 0.18, y - 14, L.streetW * 0.34, 28, 4); g.fill();
+    if (mine) drawPin(g, L.streetX + L.streetW * 0.35, y - 20, 'On the van', clk(v.t0 + v.dur) + ' approx.');
+  }
+  // carts
+  for (const d of disp.values()) d.seen = false;
+  sim.queue.forEach((cid, k) => {
+    const p = ease('c' + cid, targetPos(L, 'pad', k));
+    dot(g, p.x, p.y, r && r.cid === cid ? 'me' : k >= SETTINGS.DOCK_CAPACITY ? 'curb' : 'in');
+  });
+  if (sim.lift.state === 'cycling' && sim.ll.liftCart != null) { const cid = sim.ll.liftCart; const p = ease('c' + cid, targetPos(L, 'lift', sim.lift.timer / P.cycle.v)); dot(g, p.x, p.y, r && r.cid === cid ? 'me' : 'in'); }
+  if (sim.pendingHandoff) { const cid = sim.pendingHandoff.cartId; const p = ease('c' + cid, targetPos(L, 'shaft')); dot(g, p.x, p.y, r && r.cid === cid ? 'me' : 'in'); }
+  for (const e of sim.trunkEntities) {
+    const key = e.kind === 'inbound' ? 'c' + e.cartId : 'm' + e.id;
+    const p = ease(key, targetPos(L, 'trench', e));
+    dot(g, p.x, p.y, e.kind === 'outgoing' ? 'mail' : r && r.cid === e.cartId ? 'me' : 'in', sim.deadlocked && sim.deadlockEntityIds && sim.deadlockEntityIds.includes(e.id));
+  }
+  for (const [k, d] of disp) if (!d.seen) disp.delete(k);
+  // route line + ping on top
+  if (r && loc && loc.kind !== 'done') {
+    const me = disp.get('c' + r.cid);
+    const tx = L.x(SETTINGS.BUILDING_CELLS[r.dest]);
+    const pts = [];
+    if (loc.kind === 'van') { const y = -30 + (L.padY(2) + 30) * loc.prog; pts.push([L.streetX + L.streetW * 0.35, y], [L.padX, L.padY(0)]); }
+    else if (me) pts.push([me.x, me.y]);
+    if (loc.kind === 'van' || loc.kind === 'dock') pts.push([L.liftX, L.padY(0)]);
+    if (loc.kind !== 'trench') pts.push([L.liftX, L.yT]);
+    pts.push([tx, L.yT], [tx, L.tlY]);
+    g.strokeStyle = 'rgba(143,214,179,0.85)'; g.lineWidth = 3; g.setLineDash([7, 6]); g.lineDashOffset = -performance.now() / 60;
+    g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.setLineDash([]); g.lineWidth = 1;
+    g.fillStyle = '#8fd6b3'; g.beginPath(); g.arc(tx, L.tlY, 6, 0, Math.PI * 2); g.fill();
+    if (me && loc.kind !== 'van') {
+      const pulse = (performance.now() / 900) % 1;
+      g.strokeStyle = `rgba(143,214,179,${0.6 * (1 - pulse)})`; g.lineWidth = 2; g.beginPath(); g.arc(me.x, me.y, 8 + pulse * 16, 0, Math.PI * 2); g.stroke(); g.lineWidth = 1;
+      const [w1] = locText(loc, r);
+      drawPin(g, me.x, me.y - 10, w1, loc.kind === 'dock' ? 'Arrived' : 'Your package');
+    }
+  }
+  // curb overflow note
+  const curb = sim.queue.length - SETTINGS.DOCK_CAPACITY;
+  if (curb > 0) { g.fillStyle = '#ff8a6b'; g.font = '600 11px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.fillText(curb + ' at the curb', L.streetX + 4, L.padY(0) - 18); }
+  if (sim.deadlocked) { g.fillStyle = 'rgba(255,138,107,0.95)'; g.font = '700 13px ' + getComputedStyle(document.body).getPropertyValue('--sans'); g.fillText('JAMMED · tap a row next to the jam with “Build bays” on', L.left, yTop - 24); }
+}
+function dot(g, x, y, kind, jam) {
+  const col = kind === 'me' ? '#8fd6b3' : kind === 'mail' ? '#f0c987' : kind === 'curb' ? '#ff8a6b' : '#5f8f7b';
+  g.fillStyle = col; g.beginPath(); g.arc(x, y, kind === 'me' ? 7.5 : 5.5, 0, Math.PI * 2); g.fill();
+  if (kind === 'me') { g.strokeStyle = '#0b2219'; g.lineWidth = 2; g.stroke(); g.lineWidth = 1; }
+  if (jam) { g.strokeStyle = '#ff8a6b'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 9, 0, Math.PI * 2); g.stroke(); g.lineWidth = 1; }
+}
+function drawPin(g, x, y, title, sub) {
+  const mono = getComputedStyle(document.body).getPropertyValue('--mono'), sans = getComputedStyle(document.body).getPropertyValue('--sans');
+  g.font = '700 13px ' + sans; const w1 = g.measureText(title).width; g.font = '10px ' + mono; const w2 = g.measureText(sub).width;
+  const w = Math.max(w1, w2) + 20, h = 38;
+  let bx = x - w / 2; bx = Math.max(4, Math.min(G.W - w - 4, bx));
+  const by = Math.max(4, y - h - 10);
+  g.fillStyle = '#edf2f1'; rr(g, bx, by, w, h, 8); g.fill();
+  g.beginPath(); g.moveTo(Math.max(bx + 10, Math.min(bx + w - 10, x)) - 6, by + h); g.lineTo(Math.max(bx + 10, Math.min(bx + w - 10, x)) + 6, by + h); g.lineTo(x, by + h + 8); g.closePath(); g.fill();
+  g.fillStyle = '#0b2219'; g.font = '700 13px ' + sans; g.fillText(title, bx + 10, by + 16);
+  g.fillStyle = '#3f5552'; g.font = '10px ' + mono; g.fillText(sub, bx + 10, by + 30);
+}
+cv.addEventListener('click', (ev) => {
+  const L = G; if (!L) return;
+  const rect = cv.getBoundingClientRect(); const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+  if (buildMode) {
+    const i = Math.floor((x - L.left) / L.cw);
+    if (i >= 0 && i < SETTINGS.CELL_COUNT && Math.abs(y - (L.yT + L.ch / 2)) < L.ch * 2) {
+      if (!PASSING_CANDIDATES.includes(i)) { notify(null, `Row ${i} is a ${i === SETTINGS.HUB_CELL ? 'dock' : 'tenant'} row and cannot hold a bay.`, 'warn', 'Bays'); return; }
+      if (bays.has(i)) { const occ = sim.cellOccupants[i]; if (occ.length > 1) { notify(null, `Bay at row ${i} is in use; try again in a moment.`, 'warn', 'Bays'); return; } bays.delete(i); }
+      else bays.add(i);
+      sim.untangle = true; disp.forEach((d) => d); renderSheet(); return;
+    }
+  }
+  let best = null, bd = 18;
+  for (const [k, d] of disp) { if (k[0] !== 'c') continue; const dd = Math.hypot(d.x - x, d.y - y); if (dd < bd) { bd = dd; best = parseInt(k.slice(1), 10); } }
+  if (best != null && recs.has(best)) { tracked = best; follow = true; const rr0 = recs.get(best); if (!rr0.band && rr0.tDeliv == null) rr0.band = forecast(rr0, FORKS); forecastStamp = 0; renderSheet(); }
+});
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+$('tenants').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (!b) return; chosenTenant = +b.dataset.t; [...$('tenants').children].forEach((x) => x.classList.toggle('on', x === b)); $('btnOrder').textContent = 'Order a package to Tenant ' + TEN[chosenTenant]; });
+$('btnOrder').addEventListener('click', () => { order(chosenTenant); renderSheet(); });
+$('btnPlay').addEventListener('click', () => { running = !running; $('btnPlay').textContent = running ? 'Pause' : 'Play'; });
+$('selSpeed').addEventListener('change', () => { speed = +$('selSpeed').value; });
+$('selMode').addEventListener('change', () => { mode = $('selMode').value; setArrivalMode(mode); });
+$('inRate').addEventListener('change', () => { const v = Math.max(1, Math.min(80, +$('inRate').value || 16)); P.rate.v = v; $('inRate').value = v; renderParams(); });
+$('chkCtrl').addEventListener('change', () => { ctrl = $('chkCtrl').checked; });
+$('chkMail').addEventListener('change', () => { mailOn = $('chkMail').checked; });
+$('btnReset').addEventListener('click', () => newDay());
+$('btnFollow').addEventListener('click', () => { follow = !follow; });
+$('btnBuild').addEventListener('click', () => { buildMode = !buildMode; $('btnBuild').classList.toggle('on', buildMode); $('btnBuild').textContent = buildMode ? 'Done building' : 'Build bays'; });
+document.addEventListener('visibilitychange', () => { last = performance.now(); });
+
+/* ============================================================
+   DATA VIEW
+   ============================================================ */
+function delivered() { return [...recs.values()].filter((r) => r.tDeliv != null && r.tDock != null).sort((a, b) => a.tDeliv - b.tDeliv); }
+function renderData() {
+  const D = delivered(); const st = littleStats(sim, P.cycle.v);
+  const banded = D.filter((r) => r.band0 && r.band0.p10 != null);
+  const hits = banded.filter((r) => r.hit).length;
+  const dwell = D.map((r) => (r.tLift != null ? r.tLift - r.tDock : null)).filter((x) => x != null);
+  const k = `<div class="kpi"><div class="v">${D.length}</div><div class="l">deliveries logged</div></div>` +
+    `<div class="kpi"><div class="v">${f(st.lamHr, 1)}</div><div class="l">arrivals per hour, measured in the run</div></div>` +
+    `<div class="kpi"><div class="v">${f(q(dwell, 0.5), 1)}</div><div class="l">median minutes dwelling on the dock</div></div>` +
+    `<div class="kpi"><div class="v">${f(st.W, 1)}</div><div class="l">average minutes dock → tenant</div></div>` +
+    `<div class="kpi"><div class="v ${banded.length >= 5 && hits / banded.length < 0.7 ? 'bad' : ''}">${banded.length ? Math.round((hits / banded.length) * 100) + '%' : '—'}</div><div class="l">delivered inside the promised 80% window (${hits} of ${banded.length})</div></div>`;
+  if ($('dataKpis')._h !== k) { $('dataKpis').innerHTML = k; $('dataKpis')._h = k; }
+  // calibration chart
+  const B = banded.slice(-24);
+  if (B.length) {
+    const w = 640, rowH = 16, h = 40 + B.length * rowH;
+    const errs = B.flatMap((r) => [r.band0.p10 - r.tDock, r.band0.p90 - r.tDock, r.tDeliv - r.tDock]);
+    const mx = Math.max(5, ...errs) * 1.08;
+    const X = (v) => 110 + (v / mx) * (w - 130);
+    let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Promised window versus actual delivery for each package">`;
+    for (let t = 0; t <= mx; t += mx > 40 ? 10 : 5) s += `<line x1="${X(t)}" x2="${X(t)}" y1="18" y2="${h - 16}" stroke="#1f292d"/><text x="${X(t)}" y="${h - 3}" fill="#7b898b" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace">${t}</text>`;
+    s += `<text x="${w - 6}" y="12" fill="#7b898b" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace">minutes after reaching the dock →</text>`;
+    B.forEach((r, i) => {
+      const y = 26 + i * rowH; const b = r.band0;
+      s += `<text x="4" y="${y + 4}" fill="#b3bfbf" font-size="10.5" font-family="IBM Plex Mono, monospace">${esc(r.label)} ${TEN[r.dest]}</text>`;
+      s += `<line x1="${X(b.p10 - r.tDock)}" x2="${X(b.p90 - r.tDock)}" y1="${y}" y2="${y}" stroke="${r.hit ? 'rgba(143,214,179,0.55)' : 'rgba(255,138,107,0.6)'}" stroke-width="7" stroke-linecap="round"/>`;
+      s += `<circle cx="${X(r.tDeliv - r.tDock)}" cy="${y}" r="4.2" fill="${r.hit ? '#8fd6b3' : '#ff8a6b'}" stroke="#0d1214" stroke-width="1.5"/>`;
+      if (b.jams) s += `<text x="${w - 4}" y="${y + 4}" fill="#ff8a6b" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace">${b.jams} jam futures</text>`;
+    });
+    s += '</svg>';
+    $('calChart').innerHTML = s;
+    const rate = hits / banded.length;
+    $('calNote').innerHTML = banded.length < 10 ? `Only ${banded.length} packages so far: too few to judge the bands. Let the day run.` :
+      rate >= 0.7 && rate <= 0.92 ? `<span class="good">${Math.round(rate * 100)}% landed inside: the bands are about as wide as they claim.</span>` :
+      rate > 0.92 ? `${Math.round(rate * 100)}% landed inside: the bands are wider than they need to be.` :
+      `<span class="bad">${Math.round(rate * 100)}% landed inside: the bands are too narrow, so the app is overpromising.</span> Usually that means jams or curb spills the futures did not foresee.`;
+  } else { $('calChart').innerHTML = '<div class="note" style="padding:18px 0">No banded deliveries yet. Order a package, or let the day run: one in three packages gets a promised window when it reaches the dock.</div>'; $('calNote').textContent = ''; }
+  // flow chart
+  {
+    const T = sim.simMinutes, bins = Math.max(4, Math.ceil(T / 15)); const del = new Array(bins).fill(0), arr = new Array(bins).fill(0);
+    for (const r of recs.values()) { if (r.tDock != null) arr[Math.min(bins - 1, Math.floor(r.tDock / 15))]++; if (r.tDeliv != null) del[Math.min(bins - 1, Math.floor(r.tDeliv / 15))]++; }
+    const w = 640, h = 200, mx = Math.max(4, ...del, ...arr) * 1.15, bw = (w - 50) / bins;
+    const Y = (v) => h - 24 - (v / mx) * (h - 44);
+    let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Deliveries and dock arrivals per 15 minutes">`;
+    for (let v = 0; v <= mx; v += Math.max(1, Math.ceil(mx / 5))) s += `<line x1="40" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#1f292d"/><text x="34" y="${Y(v) + 3}" fill="#7b898b" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace">${v}</text>`;
+    del.forEach((v, i) => { s += `<rect x="${44 + i * bw + 1}" y="${Y(v)}" width="${Math.max(1, bw - 2)}" height="${h - 24 - Y(v)}" fill="#3f7a63" rx="2"/>`; });
+    let path = ''; arr.forEach((v, i) => { path += (i ? 'L' : 'M') + (44 + (i + 0.5) * bw) + ' ' + Y(v); });
+    s += `<path d="${path}" fill="none" stroke="#f0c987" stroke-width="2"/>`;
+    for (let i = 0; i < bins; i += Math.max(1, Math.round(bins / 8))) s += `<text x="${44 + i * bw}" y="${h - 6}" fill="#7b898b" font-size="10" font-family="IBM Plex Mono, monospace">${clk(i * 15)}</text>`;
+    s += `<text x="${w - 4}" y="12" fill="#7b898b" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace"><tspan fill="#8fd6b3">■ delivered</tspan>   <tspan fill="#f0c987">— reached the dock</tspan></text></svg>`;
+    $('flowChart').innerHTML = s;
+  }
+  // little's law
+  {
+    const gap = st.err; const ok = gap != null && Math.abs(gap) < 0.1;
+    $('little').innerHTML = `<div class="kpis"><div class="kpi"><div class="v">${f(st.Lbar, 2)}</div><div class="l">L · average packages inside</div></div><div class="kpi"><div class="v" style="color:var(--amber)">${f(st.lamW, 2)}</div><div class="l">λ × W · ${f(st.lamHr, 1)}/hr × ${f(st.W, 1)} min</div></div><div class="kpi"><div class="v ${ok ? 'good' : 'bad'}">${gap == null ? '—' : (Math.round(gap * 100) || 0) + '%'}</div><div class="l">gap · ${st.inside} still inside</div></div></div>` +
+      `<p class="note" style="margin-top:10px">${sim.deadlocked ? '<span class="bad">The stratum is jammed, so stuck packages cannot leave and the two sides drift apart.</span>' : 'A small gap is the packages still inside; it shrinks as the day goes on.'}</p>`;
+  }
+  renderParams();
+  // log table
+  const rows = [...recs.values()].filter((r) => r.tDock != null).sort((a, b) => b.tDock - a.tDock).slice(0, 200).map((r) => {
+    const b = r.band0;
+    return `<tr><td class="l">${esc(r.label)}</td><td class="l">${TEN[r.dest]}${r.ordered ? ' · order' : ''}</td><td>${clk(r.tDock)}</td><td>${r.tLift != null ? f(r.tLift - r.tDock, 1) : '…'}</td><td>${r.tTrench != null && r.tDeliv != null ? f(r.tDeliv - r.tTrench, 1) : '…'}</td><td>${r.tDeliv != null ? clk(r.tDeliv) : '…'}</td><td>${r.tDeliv != null ? f(r.tDeliv - r.tDock, 1) : '…'}</td><td>${b && b.p10 != null ? clk(b.p10) + '–' + clk(b.p90) : '—'}</td><td>${r.hit == null ? '—' : r.hit ? '<span class="good">yes</span>' : '<span class="bad">no</span>'}</td></tr>`;
+  }).join('');
+  const tb = `<tr><th class="l">package</th><th class="l">tenant</th><th>at dock</th><th>dwell min</th><th>stratum min</th><th>delivered</th><th>total min</th><th>promised 80%</th><th>inside?</th></tr>` + (rows || '<tr><td class="l" colspan="9" style="color:var(--dim)">The first packages reach the dock a few minutes after 06:00.</td></tr>');
+  if ($('logTable')._h !== tb) { $('logTable').innerHTML = tb; $('logTable')._h = tb; }
+}
+function renderParams() {
+  const h = Object.entries(P).map(([k, p]) => {
+    const edit = k === 'rate' || k === 'cycle';
+    return `<div class="param"><div><div class="nm">${p.what}</div><div class="ds">${esc(p.src)}</div></div><div class="mono" style="color:var(--text)">${edit ? `<input type="number" data-p="${k}" value="${p.v}" step="${k === 'cycle' ? 0.1 : 1}" min="${k === 'cycle' ? 0.3 : 1}" aria-label="${p.what}">` : p.v} <span class="note">${p.unit}</span></div><span class="tag ${p.tag === 'measured' ? 'm' : 'a'}">${p.tag}</span></div>`;
+  }).join('');
+  const box = $('params');
+  if (box._h !== h && !box.contains(document.activeElement)) { box.innerHTML = h; box._h = h; }
+}
+$('params').addEventListener('change', (e) => {
+  const k = e.target.dataset.p; if (!k) return;
+  const v = parseFloat(e.target.value); if (!isFinite(v) || v <= 0) return;
+  P[k].v = v; P[k].tag = 'measured'; P[k].src = 'entered from the field kit';
+  if (k === 'rate') $('inRate').value = Math.round(v);
+  $('params')._h = null; renderParams();
+});
+function csv() {
+  const head = 'package,tenant,ordered,at_dock,lift_start,in_stratum,delivered,dwell_min,total_min,promised_p10,promised_p50,promised_p90,inside_window,futures,jam_futures';
+  const rows = [...recs.values()].filter((r) => r.tDock != null).sort((a, b) => a.tDock - b.tDock).map((r) => {
+    const b = r.band0 || {};
+    return [r.label, TEN[r.dest], r.ordered ? 'yes' : 'no', clk(r.tDock), r.tLift != null ? clk(r.tLift) : '', r.tTrench != null ? clk(r.tTrench) : '', r.tDeliv != null ? clk(r.tDeliv) : '',
+      r.tLift != null ? (r.tLift - r.tDock).toFixed(2) : '', r.tDeliv != null ? (r.tDeliv - r.tDock).toFixed(2) : '', b.p10 != null ? clk(b.p10) : '', b.p50 != null ? clk(b.p50) : '', b.p90 != null ? clk(b.p90) : '', r.hit == null ? '' : r.hit ? 'yes' : 'no', b.n || '', b.jams || ''].join(',');
+  });
+  return head + '\n' + rows.join('\n') + '\n';
+}
+let downloads = null;
+$('btnCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(csv()); $('copyNote').textContent = 'Copied.'; } catch (e) { $('copyNote').textContent = 'Copy is blocked here; use Save CSV.'; } });
+$('btnCsv').addEventListener('click', async () => {
+  if (!downloads) { $('copyNote').textContent = 'Saving files is not available here; use Copy CSV.'; return; }
+  try { await downloads.save({ filename: 'undertheblock-deliveries.csv', data: csv() }); $('copyNote').textContent = 'Saved.'; }
+  catch (e) { $('copyNote').textContent = e && e.code === 'declined' ? 'Not saved.' : 'Saving is not available here; use Copy CSV.'; }
+});
+
+/* ============================================================
+   EXPLAIN VIEW — results from headless runs (10 random 8-hour shifts per setting)
+   ============================================================ */
+const CAP = {"modes": [{"key": "noCtrl", "name": "Two-way, no controller", "note": "the A2 toy's rules \u00b7 at 16/hr it jams in ~2.7 h", "clean": 3, "ceil": 3}, {"key": "ctrl4", "name": "Controller, only 4 bays", "note": "bays miss some of the 8 choke points", "clean": 0, "ceil": 0, "fail": "jams at any load \u00b7 not a working mode"}, {"key": "sep", "name": "Mail moved to off-hours", "note": "one direction at a time, no controller", "clean": 17, "ceil": 30}, {"key": "ctrl", "name": "Controller + 10 bays", "note": "as designed: head-on carts waved past at a bay", "clean": 18, "ceil": 29}, {"key": "ctrl12", "name": "Controller + 12 bays", "note": "every possible bay built", "clean": 19, "ceil": 31}, {"key": "ctrlFast", "name": "Controller + 12 bays + 1-min lift", "note": "a lift twice as fast", "clean": 39, "ceil": 58}], "scales": [{"name": "1 building", "note": "Tenant A, next to the dock", "note2": "no controller", "clean": 16, "ceil": 29}, {"name": "2 buildings", "note": "A + B", "note2": "no controller", "clean": 13, "ceil": 13}, {"name": "3 buildings", "note": "A + B + C", "note2": "no controller", "clean": 7, "ceil": 7}, {"name": "4 buildings", "note": "the full block", "note2": "no controller", "clean": 3, "ceil": 3}, {"name": "4 buildings", "note": "+ controller", "note2": "+ 10 bays", "clean": 18, "ceil": 29, "hi": true}, {"name": "4 buildings", "note": "+ 12 bays", "note2": "+ 1-min lift", "clean": 39, "ceil": 58}], "swarm": [{"flow": "16/hr", "n": 6, "note": "two-way: jams", "jam": true}, {"flow": "28/hr", "n": 3, "note": "2-min lift"}, {"flow": "55/hr", "n": 6, "note": "1-min lift"}, {"flow": "110/hr", "n": 9, "note": "30 s lift"}, {"flow": "221/hr", "n": 15, "note": "15 s lift"}, {"flow": "304/hr", "n": 18, "note": "lane's limit"}]};
+function bar(x, y, w, h, c, extra) { return `<rect x="${x}" y="${y}" width="${Math.max(0, w)}" height="${h}" rx="3" fill="${c}" ${extra || ''}/>`; }
+function txt(x, y, s, o) { o = o || {}; return `<text x="${x}" y="${y}" fill="${o.c || '#b3bfbf'}" font-size="${o.s || 11}" font-weight="${o.w || 400}" text-anchor="${o.a || 'start'}" font-family="${o.f === 'm' ? 'IBM Plex Mono, monospace' : 'IBM Plex Sans, system-ui, sans-serif'}">${s}</text>`; }
+function renderExplain() {
+  const H16 = 16;
+  const C = CAP;
+  // verdicts
+  const ctrl = C.modes.find((m) => m.key === 'ctrl');
+  const fast = C.modes.find((m) => m.key === 'ctrlFast');
+  $('verdicts').innerHTML = [
+    ['Per day, as designed', `${ctrl.clean * H16}–${ctrl.ceil * H16}<small> carts / 16 h</small>`, `About ${(ctrl.clean * H16 * 10).toLocaleString()}–${(ctrl.ceil * H16 * 30).toLocaleString()} parcels at 10–30 parcels a cart. Needs a traffic controller and passing bays at all 8 choke points; without them the lane jams within hours.`],
+    ['Bottleneck', `Dock lift<small> · ${60 / 2} carts/hr</small>`, 'One lift lowering one cart every 2 minutes sets the ceiling. The lane itself can carry about 300 carts/hr in one direction.'],
+    ['Floor plenums', `No<small> · cart is 1.05 m tall</small>`, 'Office raised floors are 41–70 mm deep and data-centre floors 0.8–1.0 m. The robot only travels the stratum and the tenant lifts.'],
+    ['Swarm', `One way: yes<small> · two way: only with bays</small>`, 'In one direction up to 18 robots can follow each other through the lane without a jam. Head-on traffic needs bays at every choke point and a controller.'],
+  ].map((v) => `<div class="vcard"><div class="q">${v[0]}</div><div class="a">${v[1]}</div><div class="w">${v[2]}</div></div>`).join('');
+
+  // 1 · flow
+  {
+    const w = 980, h = 300; let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Flow of one package from van to tenant with capacity per step">`;
+    const st = [
+      ['Van at the curb', 'street', '3–8 min drive', 'any', '#9fb0b2'],
+      ['Loading dock', 'street level', '5 pads to wait on', '5 waiting', '#9fb0b2'],
+      ['Dock lift', 'down one storey', `${P.cycle.v} min per cart`, `${Math.round(60 / P.cycle.v)} / hr`, '#ff8a6b'],
+      ['The stratum', '−2.3 m, one lane, 17 rows', '9 s per 2.3 m row', '~300 / hr one way', '#8fd6b3'],
+      ['Tenant lift', '×4, up to the lobby', 'not simulated', 'not tested', '#6cb6e0'],
+      ['Tenant lobby', 'A · B · C · D', 'delivered', '', '#9fb0b2'],
+    ];
+    const bw = 140, gap = (w - 20 - bw * st.length) / (st.length - 1);
+    // ground line
+    s += `<line x1="0" x2="${w}" y1="150" y2="150" stroke="#3a4a50" stroke-dasharray="4 4"/>` + txt(w - 4, 144, 'street level ↑', { s: 10, f: 'm', c: '#7b898b', a: 'end' }) + txt(w - 4, 166, 'below the plaza ↓', { s: 10, f: 'm', c: '#7b898b', a: 'end' });
+    st.forEach((d, i) => {
+      const x = 10 + i * (bw + gap); const below = i === 3; const y = below ? 176 : i === 2 ? 120 : 60;
+      if (i < st.length - 1) { const x2 = 10 + (i + 1) * (bw + gap); const y2 = (i + 1) === 3 ? 176 : (i + 1) === 2 ? 120 : 60; s += `<path d="M${x + bw} ${y + 34} C ${x + bw + gap / 2} ${y + 34}, ${x2 - gap / 2} ${y2 + 34}, ${x2} ${y2 + 34}" fill="none" stroke="#3f7a63" stroke-width="3" marker-end="url(#ah)"/>`; }
+      s += `<rect x="${x}" y="${y}" width="${bw}" height="68" rx="10" fill="#1a2327" stroke="${d[4]}" stroke-width="${i === 2 ? 2.5 : 1.2}"/>`;
+      s += txt(x + 10, y + 20, d[0], { c: '#edf2f1', w: 600, s: 13 }) + txt(x + 10, y + 36, d[1], { s: 10.5, c: '#7b898b' }) + txt(x + 10, y + 54, d[2], { s: 10.5, f: 'm' });
+      if (d[3]) s += txt(x + bw / 2, y + 88, d[3], { s: 12, w: 600, a: 'middle', c: d[4], f: 'm' });
+    });
+    s += `<defs><marker id="ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3f7a63"/></marker></defs>`;
+    s += txt(10 + 2 * (bw + gap) + bw / 2, 112, '▼ narrowest step', { a: 'middle', c: '#ff8a6b', s: 11, w: 600 });
+    s += txt(10, 286, 'Outgoing mail runs the other way through the same lane, 3 carts an hour from each building. That two-way traffic is what makes passing bays necessary.', { s: 12 });
+    s += '</svg>'; $('flowSvg').innerHTML = s;
+  }
+  // 2 · per day
+  {
+    const M = C.modes; const w = 980, rowH = 46, h = 50 + M.length * rowH; const mx = Math.max(...M.map((m) => m.ceil)) * H16 * 1.05;
+    const X = (v) => 300 + (v / mx) * (w - 330);
+    let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Carts per 16-hour day for each operating mode">`;
+    for (let v = 0; v <= mx; v += 200) s += `<line x1="${X(v)}" x2="${X(v)}" y1="20" y2="${h - 18}" stroke="#1f292d"/>` + txt(X(v), h - 4, String(v), { s: 10, a: 'middle', f: 'm', c: '#7b898b' });
+    s += txt(w - 4, 12, 'carts per 16-hour day →', { s: 10, a: 'end', f: 'm', c: '#7b898b' });
+    M.forEach((m, i) => {
+      const y = 28 + i * rowH;
+      s += txt(4, y + 12, m.name, { c: '#edf2f1', w: 600, s: 12.5 }) + txt(4, y + 28, m.note, { s: 10.5, c: '#7b898b' });
+      if (m.ceil === 0) { s += txt(X(0) + 4, y + 20, m.fail || 'jams · not a working mode', { c: '#ff8a6b', s: 12, w: 600 }); return; }
+      s += bar(X(0), y + 4, X(m.ceil * H16) - X(0), 22, 'rgba(143,214,179,0.22)') + bar(X(0), y + 4, X(m.clean * H16) - X(0), 22, m.key === 'ctrl' ? '#8fd6b3' : '#3f7a63');
+      s += txt(X(m.ceil * H16) + 6, y + 20, m.clean === m.ceil ? String(m.ceil * H16) : `${m.clean * H16}–${m.ceil * H16}`, { f: 'm', s: 11.5, c: '#edf2f1' });
+    });
+    s += '</svg>'; $('daySvg').innerHTML = s;
+  }
+  // 3 · scales
+  {
+    const S = C.scales; const w = 980, h = 290; const mx = Math.max(...S.map((m) => m.ceil)) * H16 * 1.1;
+    const bw = (w - 60) / S.length; const Y = (v) => 230 - (v / mx) * 190;
+    let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Carts per day at intermediate scales">`;
+    for (let v = 0; v <= mx; v += 200) s += `<line x1="44" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#1f292d"/>` + txt(38, Y(v) + 3, String(v), { s: 10, a: 'end', f: 'm', c: '#7b898b' });
+    S.forEach((m, i) => {
+      const x = 52 + i * bw, bx = x + bw * 0.18, bwid = bw * 0.64;
+      s += bar(bx, Y(m.ceil * H16), bwid, 230 - Y(m.ceil * H16), 'rgba(143,214,179,0.22)') + bar(bx, Y(m.clean * H16), bwid, 230 - Y(m.clean * H16), m.hi ? '#8fd6b3' : '#3f7a63');
+      s += txt(x + bw / 2, Y(m.ceil * H16) - 6, m.clean === m.ceil ? String(m.ceil * H16) : `${m.clean * H16}–${m.ceil * H16}`, { a: 'middle', f: 'm', s: 10.5, c: '#edf2f1' });
+      s += txt(x + bw / 2, 248, m.name, { a: 'middle', s: 11.5, c: '#edf2f1', w: 600 });
+      s += txt(x + bw / 2, 264, m.note, { a: 'middle', s: 10, c: '#7b898b' });
+      if (m.note2) s += txt(x + bw / 2, 278, m.note2, { a: 'middle', s: 10, c: '#7b898b' });
+    });
+    s += txt(46, 14, 'carts per 16-hour day', { s: 10, f: 'm', c: '#7b898b' });
+    s += '</svg>'; $('scaleSvg').innerHTML = s;
+  }
+  // 4 · plenum
+  {
+    const w = 480, h = 300, base = 262, k = 92; // px per metre, everything to one scale
+    let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Robot height compared with plenum depths">`;
+    s += `<line x1="0" x2="${w}" y1="${base}" y2="${base}" stroke="#3a4a50"/>`;
+    const items = [['Office raised floor', 0.07, '#6cb6e0', '41–70 mm'], ['Data-centre floor', 1.0, '#6cb6e0', '0.8–1.0 m'], ['Robot + load', 1.05, '#8fd6b3', '1.05 m'], ['The stratum', 2.3, '#9fb0b2', '2.3 m clear']];
+    items.forEach((it, i) => {
+      const x = 30 + i * 110, hh = Math.max(3, it[1] * k);
+      s += `<rect x="${x}" y="${base - hh}" width="70" height="${hh}" rx="4" fill="${it[2]}" fill-opacity="${i === 2 ? 0.9 : 0.3}" stroke="${it[2]}"/>`;
+      s += txt(x + 35, base - hh - (i === 1 ? 14 : 8), it[3], { a: 'middle', f: 'm', s: 11, c: '#edf2f1' }) + txt(x + 35, base + 16, it[0], { a: 'middle', s: 10.5 });
+    });
+    s += `<line x1="20" x2="${w - 10}" y1="${base - 1.05 * k}" y2="${base - 1.05 * k}" stroke="#8fd6b3" stroke-dasharray="4 4" stroke-opacity="0.7"/>` + txt(24, base - 1.05 * k - 26, 'robot height ↓', { s: 10, c: '#8fd6b3', f: 'm' });
+    s += '</svg>'; $('plenumSvg').innerHTML = s;
+  }
+  // 5 · swarm
+  {
+    const W = C.swarm; const w = 480, h = 300; const mx = 20; const Y = (v) => 240 - (v / mx) * 200; const bw = (w - 60) / W.length;
+    let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Robots in the lane at once at increasing flow">`;
+    for (let v = 0; v <= mx; v += 5) s += `<line x1="40" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#1f292d"/>` + txt(34, Y(v) + 3, String(v), { s: 10, a: 'end', f: 'm', c: '#7b898b' });
+    s += `<line x1="40" x2="${w}" y1="${Y(17)}" y2="${Y(17)}" stroke="#7b898b" stroke-dasharray="3 3"/>` + txt(44, Y(17) - 5, '17 rows in the lane', { s: 10, f: 'm', c: '#7b898b' });
+    W.forEach((m, i) => {
+      const x = 48 + i * bw;
+      s += bar(x + bw * 0.2, Y(m.n), bw * 0.6, 240 - Y(m.n), m.jam ? '#ff8a6b' : '#8fd6b3');
+      s += txt(x + bw / 2, Y(m.n) - 6, String(m.n), { a: 'middle', f: 'm', s: 11, c: '#edf2f1' });
+      s += txt(x + bw / 2, 256, m.flow, { a: 'middle', f: 'm', s: 10.5, c: '#edf2f1' }) + txt(x + bw / 2, 270, m.note, { a: 'middle', s: 9.5, c: '#7b898b' });
+    });
+    s += txt(44, 14, 'most robots in the lane at once', { s: 10, f: 'm', c: '#7b898b' }) + txt(44, 292, 'carts per hour, one direction (outgoing mail off)', { s: 10, f: 'm', c: '#7b898b' });
+    s += '</svg>'; $('swarmSvg').innerHTML = s;
+  }
+  $('howKnow').innerHTML = `<p>Every bar comes from the simulation under the map: the same rows, bays, dock lift and jam rules as the A3 toy, with random arrivals. For each setting we ran <b>10 random 8-hour shifts</b> at rising arrival rates. The solid bar is the highest rate where at least 8 of the 10 shifts never spilled a cart onto the curb and never jammed; the pale bar is the highest rate where the dock queue stayed bounded. Days assume <b>16 operating hours</b> <span class="tag a">assumed</span>.</p>
+    <p><b>Measured, sourced, assumed.</b> Plenum depths are <span class="tag s">sourced</span> (Wikipedia, Raised floor). Arrival rate, lift cycle, robot speed, mail rate, lingering, parcels per cart and the 16-hour day are <span class="tag a">assumed</span> until your field kit measures them. The traffic controller is a planner rule, not physics: it waves head-on carts past each other at a bay.</p>
+    <p><b>What the model cannot know.</b> Tenant lifts are drawn but not simulated, so their capacity is untested. There is no maintenance downtime, no battery charging, no turning radius and no structure. Bands show random variation inside the model, not doubt about the model itself, so the real spread is wider than any band here.</p>`;
+}
+$('btnRecalc').addEventListener('click', () => {
+  $('recalcNote').textContent = 'Running 10 shifts per rate…';
+  setTimeout(() => {
+    const rows = [];
+    let best = 0, bestClean = 0, fails = 0;
+    for (let r = 1; r <= 70; r++) {
+      let ok = 0, okClean = 0;
+      for (let seed = 1; seed <= 10; seed++) {
+        const s = freshLogicalState(); const rng = mulberry32(seed * 977 + r);
+        const was = arrivalMode; setArrivalMode('steady');
+        const opts = { rng, recover: ctrl, order: bayOrder(), noOutgoing: !mailOn, mailFrom: [0, 1, 2, 3] };
+        let deadT = 0;
+        for (let i = 0; i < 9600; i++) { if (ctrl) s.untangle = true; stepLogical(s, 0.05, policy, r, P.cycle.v, bays.size, opts); if (s.deadlocked) { deadT += 0.05; if (!ctrl) break; } }
+        setArrivalMode(was);
+        if (deadT < 1 && s.queue.length <= 12) ok++;
+        if (deadT < 1 && !s.curbEverOccurred) okClean++;
+      }
+      if (okClean >= 8) bestClean = r;
+      if (ok >= 8) { best = r; fails = 0; } else if (++fails >= 3) break;
+    }
+    $('recalcNote').innerHTML = `Current map settings (${bays.size} bays, ${f(P.cycle.v, 1)}-min lift, controller ${ctrl ? 'on' : 'off'}, mail ${mailOn ? 'on' : 'off'}): <b style="color:var(--text)">${bestClean * 16}–${best * 16} carts per 16-hour day</b> (${bestClean}–${best} per hour).`;
+  }, 30);
+});
+
+/* ============================================================
+   ROUTING + START
+   ============================================================ */
+let view = 'track';
+function route() {
+  const h = (location.hash || '').replace('#', '');
+  view = ['track', 'data', 'explain'].includes(h) ? h : 'track';
+  ['track', 'data', 'explain'].forEach((v) => { $('view-' + v).hidden = v !== view; });
+  document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('on', a.dataset.view === view));
+  if (view === 'data') renderData();
+  if (view === 'explain') renderExplain();
+}
+window.addEventListener('hashchange', route);
+newDay();
+route();
+// open with a package already on its way, so the first view shows what the app does
+order(2);
+requestAnimationFrame(frame);
+(async () => { try { const c = window.claude; if (c && c.use) downloads = await c.use('downloads'); } catch (e) { downloads = null; } })();
+})();
+</script>
+
+</body>
+</html>

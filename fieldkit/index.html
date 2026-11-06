@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UnderTheBlock Field Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: a phone-first field instrument. Sticky bar with the four jobs (Count, Lift, Results, Contract),
+     one big tap target per job, results laid out as the A3 evidence panel. One deliberate dark look shared
+     with the UnderTheBlock toy: cool ink, mint for measured, amber for the toy's assumed values. */
+  :root {
+    color-scheme: dark;
+    --bg: #0d1214; --bg2: #090d0f; --panel: #141b1e; --panel2: #1a2327; --rule: #2a373c; --rule2: #1f292d;
+    --text: #edf2f1; --body: #b3bfbf; --dim: #7b898b; --accent: #8fd6b3; --accent-ink: #0b2219;
+    --amber: #f0c987; --warn: #ff8a6b; --blue: #4fa7d6; --ok: #9de08a;
+    --display: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { background: var(--bg); color: var(--body); font-family: var(--sans); }
+  body { margin: 0; -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--bg); }
+  button, input, textarea, select { font: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  /* bar */
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: rgba(13,18,20,0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule2); }
+  .bar-in { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 14px; min-height: 58px; flex-wrap: wrap;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 8px; }
+  .brand { display: flex; align-items: center; gap: 9px; flex: none; }
+  .brand svg { width: 28px; height: 28px; }
+  .wordmark { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--text); }
+  .wordmark span { color: var(--accent); }
+  .tabs { display: flex; gap: 2px; background: var(--panel); border: 1px solid var(--rule2); border-radius: 10px; padding: 3px; margin-left: auto; overflow-x: auto; max-width: 100%; }
+  .tabs a { color: var(--body); text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 7px 12px; border-radius: 7px; white-space: nowrap; }
+  .tabs a.on { background: var(--panel2); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+  .savechip { font-family: var(--mono); font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 6px; flex: none; }
+  .savechip i { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); display: inline-block; }
+  .savechip.ok i { background: var(--accent); } .savechip.busy i { background: var(--amber); } .savechip.bad i { background: var(--warn); }
+  @media (max-width: 640px) { .tabs { margin-left: 0; order: 3; width: 100%; } .tabs a { flex: 1; text-align: center; padding: 8px 6px; } .savechip { margin-left: auto; } }
+
+  main { max-width: 980px; margin: 0 auto; padding-block: 22px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .view[hidden] { display: none !important; }
+  h1 { font-family: var(--display); font-size: clamp(30px, 6vw, 44px); line-height: 1.02; color: var(--text); margin: 4px 0 8px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+  h2 { font-family: var(--display); font-size: 22px; color: var(--text); margin: 0 0 6px; font-weight: 600; }
+  h3 { font-size: 14px; color: var(--text); margin: 0 0 4px; font-weight: 600; }
+  p { line-height: 1.55; margin: 0 0 12px; max-width: 68ch; font-size: 14.5px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .muted { color: var(--dim); }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .card { background: var(--panel); border: 1px solid var(--rule2); border-radius: 14px; padding: 18px; margin-top: 14px; min-width: 0; }
+  .card.inner { background: var(--panel2); border-radius: 10px; padding: 14px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .field { display: grid; gap: 5px; min-width: 0; }
+  .field label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--dim); }
+  input[type=text], input[type=number], textarea, select { width: 100%; background: var(--bg2); color: var(--text); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 11px; font-size: 15px; }
+  textarea { min-height: 70px; resize: vertical; line-height: 1.45; }
+  input[readonly], textarea[readonly] { color: var(--body); border-style: dashed; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--panel2); color: var(--text); border: 1px solid var(--rule); border-radius: 9px; padding: 10px 14px; font-size: 14px; font-weight: 500; cursor: pointer; min-height: 42px; }
+  .btn:hover { border-color: #3d4d53; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn.warn { color: var(--warn); border-color: rgba(255,138,107,0.45); }
+  .btn.ghost { background: transparent; }
+  .btn.small { min-height: 32px; padding: 5px 10px; font-size: 12.5px; border-radius: 7px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .note { font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+  .banner { border: 1px solid rgba(240,201,135,0.4); background: rgba(240,201,135,0.07); color: var(--amber); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 12px; }
+  .banner.ex { border-color: rgba(79,167,214,0.5); background: rgba(79,167,214,0.08); color: #9ccbe6; }
+
+  /* count view */
+  .live { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .clockline { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .clock { font-family: var(--mono); font-size: clamp(34px, 9vw, 52px); color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; line-height: 1; }
+  .elapsed { font-family: var(--mono); font-size: 14px; color: var(--dim); }
+  .elapsed b { color: var(--amber); font-weight: 600; }
+  .progress { height: 6px; background: var(--rule2); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .progress i { display: block; height: 100%; background: var(--accent); width: 0; }
+  .bigtap { width: 100%; min-height: 108px; border-radius: 16px; border: 0; background: var(--accent); color: var(--accent-ink); font-family: var(--display); font-size: 30px; font-weight: 700; cursor: pointer; display: grid; place-items: center; line-height: 1.1; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .bigtap small { display: block; font-family: var(--sans); font-size: 13px; font-weight: 500; opacity: 0.8; }
+  .bigtap:active { transform: scale(0.99); filter: brightness(1.08); }
+  .bigtap.amber { background: var(--amber); color: #2a1e08; }
+  .bigtap.blue { background: var(--blue); color: #06202f; }
+  .stepper { display: flex; align-items: center; gap: 6px; }
+  .stepper input { width: 70px; text-align: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel2); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 10px 8px 12px; min-height: 48px; cursor: pointer; color: var(--text); touch-action: manipulation; }
+  .chip .k { font-family: var(--display); font-weight: 700; font-size: 18px; }
+  .chip .t { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+  .chip .go { font-size: 12px; font-weight: 600; color: var(--accent-ink); background: var(--accent); border-radius: 7px; padding: 4px 8px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule2); border: 1px solid var(--rule2); border-radius: 12px; overflow: hidden; }
+  .kpi { background: var(--panel); padding: 12px; min-width: 0; }
+  .kpi .v { font-family: var(--mono); font-size: 22px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .kpi .l { font-size: 11.5px; color: var(--dim); margin-top: 3px; line-height: 1.35; }
+  @media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .feed { font-family: var(--mono); font-size: 12px; line-height: 1.8; max-height: 180px; overflow-y: auto; color: var(--body); }
+
+  /* lift */
+  .phase { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; }
+  .phase div { text-align: center; font-size: 12px; padding: 7px 4px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--rule2); color: var(--dim); }
+  .phase div.on { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .phase div.done { color: var(--text); }
+
+  /* results */
+  .tag { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+  .tag.m { color: var(--accent); border-color: rgba(143,214,179,0.45); }
+  .tag.a { color: var(--warn); border-color: rgba(255,138,107,0.45); }
+  .tag.s { color: var(--amber); border-color: rgba(240,201,135,0.45); }
+  .big { font-family: var(--mono); font-size: 26px; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .big.toy { color: var(--amber); } .big.meas { color: var(--accent); }
+  .vsrow { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--rule2); }
+  .vsrow:last-child { border-bottom: 0; }
+  .vsrow .cap { font-size: 12px; color: var(--dim); line-height: 1.4; }
+  .vsrow .what { color: var(--text); font-size: 14px; font-weight: 600; }
+  .checklist { display: grid; gap: 8px; }
+  .check { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--panel2); border: 1px solid var(--rule2); border-radius: 10px; padding: 10px 12px; }
+  .check .mk { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-weight: 700; font-size: 14px; border: 1px solid var(--rule); color: var(--dim); }
+  .check.ok .mk { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .check.no .mk { color: var(--warn); border-color: rgba(255,138,107,0.5); }
+  .check b { color: var(--text); font-weight: 600; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule2); border-radius: 10px; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--rule2); text-align: right; white-space: nowrap; }
+  th { color: var(--dim); font-weight: 500; background: var(--bg2); font-size: 11px; }
+  td.l, th.l { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+  td .good { color: var(--ok); } td .bad { color: var(--warn); }
+  canvas.chart { display: block; width: 100%; height: 190px; margin-top: 8px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 9px; overflow: hidden; }
+  .seg button { background: var(--panel2); color: var(--body); border: 0; padding: 8px 12px; font-size: 13px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--rule); }
+  .seg button.on { background: #e9efed; color: #0d1214; font-weight: 600; }
+  details.raw summary { cursor: pointer; color: var(--accent); font-size: 13.5px; }
+  .lock { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+  .logitem { border-top: 1px solid var(--rule2); padding: 10px 0; font-size: 13.5px; line-height: 1.5; }
+  .logitem:first-child { border-top: 0; }
+  .logitem .when { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+
+  /* photo clock */
+  .photoclock { position: fixed; inset: 0; z-index: 100; background: #f4f6f5; color: #0d1214; display: grid; place-items: center; text-align: center;
+    padding: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); cursor: pointer; }
+  .photoclock .pt { font-family: var(--mono); font-size: clamp(56px, 18vw, 150px); font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .photoclock .pd { font-family: var(--mono); font-size: clamp(16px, 4vw, 26px); margin-top: 14px; }
+  .photoclock .ps { font-family: var(--display); font-size: clamp(18px, 4.5vw, 30px); font-weight: 600; margin-top: 18px; }
+  .photoclock .pf { font-size: 13px; color: #55625f; margin-top: 22px; }
+  .ruler { margin: 22px auto 0; width: min(90vw, 600px); height: 34px; position: relative; border-top: 2px solid #0d1214; }
+  .ruler i { position: absolute; top: 0; width: 1.5px; background: #0d1214; }
+</style>
+
+</head>
+<body>
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="7" fill="#1a2327" stroke="#2a373c"/><path d="M5 12h22" stroke="#7b898b" stroke-width="1.6"/><rect x="5" y="17" width="22" height="6" rx="1.5" fill="none" stroke="#8fd6b3" stroke-width="1.6"/><rect x="8" y="18.6" width="4" height="2.8" rx=".6" fill="#8fd6b3"/><rect x="19" y="18.6" width="4" height="2.8" rx=".6" fill="#d8ab5a"/><path d="M24 12v5" stroke="#8fd6b3" stroke-width="1.6"/></svg>
+      <div class="wordmark">UnderTheBlock <span>Field Kit</span></div>
+    </div>
+    <nav class="tabs" aria-label="Field kit">
+      <a href="#count" data-view="count">Count</a>
+      <a href="#lift" data-view="lift">Lift</a>
+      <a href="#results" data-view="results">Results</a>
+      <a href="#contract" data-view="contract">Contract</a>
+    </nav>
+    <div class="savechip" id="saveChip" title="Where your measurements are kept"><i></i><span id="saveText">connecting…</span></div>
+  </div>
+</header>
+
+<main>
+  <!-- ================= COUNT ================= -->
+  <section class="view" id="view-count">
+    <div class="eyebrow">A3 · Move 3 · Bench test</div>
+    <h1>Count arrivals at the dock</h1>
+    <p>One window is one repeat. Tap <b>Arrival</b> each time a van, cart or person joins, and tap their chip when they leave. The kit timestamps everything, so you get λ, W and L for every window without writing anything down.</p>
+
+    <div id="countSetup" class="card">
+      <h2>Start a window</h2>
+      <div class="grid2" style="margin-top:10px">
+        <div class="field"><label for="inSite">Site (same name for every repeat)</label><input type="text" id="inSite" placeholder="Jester Mail Center, curb" autocomplete="off"></div>
+        <div class="field"><label for="inUnit">What you are counting</label>
+          <select id="inUnit"><option value="van">Carrier vans / trucks</option><option value="cart">Carts or dollies</option><option value="person">People in line</option><option value="package">Packages</option></select></div>
+        <div class="field"><label for="inMin">Window length (minutes)</label><input type="number" id="inMin" value="30" min="5" max="180" step="5" inputmode="numeric"></div>
+        <div class="field"><label for="inPk">Ask packages per arrival?</label>
+          <select id="inPk"><option value="yes">Yes, after each arrival</option><option value="no">No</option></select></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" id="btnStart">Start window</button>
+        <button class="btn" data-photo>Clock for photo</button>
+        <span class="note" id="repeatNote"></span>
+      </div>
+    </div>
+
+    <div id="countLive" class="live" hidden>
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="eyebrow" id="liveTitle">Window</div>
+          <button class="btn small" data-photo>Clock for photo</button>
+        </div>
+        <div class="clockline" style="margin-top:6px"><div class="clock" id="liveClock">00:00:00</div><div class="elapsed" id="liveElapsed"></div></div>
+        <div class="progress"><i id="liveBar"></i></div>
+      </div>
+
+      <button class="bigtap" id="btnArrive">+ Arrival<small id="arriveSub">tap when one joins</small></button>
+      <div class="card inner" id="pkAsk" hidden>
+        <div class="row" style="justify-content:space-between">
+          <div><h3>Packages on <span id="pkWho">#1</span>?</h3><div class="note">Estimate is fine. Skip if you cannot see.</div></div>
+          <div class="stepper"><button class="btn small" id="pkMinus" aria-label="One fewer">−</button><input type="number" id="pkVal" value="1" min="0" inputmode="numeric" aria-label="Packages"><button class="btn small" id="pkPlus" aria-label="One more">+</button><button class="btn small primary" id="pkSave">Save</button><button class="btn small ghost" id="pkSkip">Skip</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h3>Inside now: tap one when it leaves</h3><button class="btn small" id="btnOldest">Oldest left</button></div>
+        <div class="chips" id="chips" style="margin-top:10px"></div>
+        <div class="note" id="chipsEmpty">Nothing inside. Arrivals appear here until they leave.</div>
+      </div>
+
+      <div class="kpis" id="liveKpis"></div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h3>Log</h3><button class="btn small" id="btnUndo">Undo last tap</button></div>
+        <div class="feed" id="feed"></div>
+        <div class="field" style="margin-top:10px"><label for="liveNotes">Notes for this window (weather, staff, anything unusual)</label><textarea id="liveNotes" placeholder="e.g. UPS and FedEx came together at 10:12; staff said Mondays are heavier"></textarea></div>
+        <label class="row note" style="margin-top:10px"><input type="checkbox" id="livePhoto"> I took a setup photo with the clock in frame</label>
+      </div>
+      <div class="row">
+        <button class="btn warn" id="btnEnd">End window</button>
+        <span class="note">Ending keeps everything; anything still inside is counted as inside at the end.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LIFT ================= -->
+  <section class="view" id="view-lift" hidden>
+    <div class="eyebrow">A3 · Move 3 · Bench test</div>
+    <h1>Time the lift cycle</h1>
+    <p>This grounds the dock lift's 2-minute cycle (μ = 30 carts/hr in the toy). One cycle: doors open at the dock floor, load, doors close and it leaves, then it comes back and the doors open again. Do at least five.</p>
+    <div class="card">
+      <div class="grid2">
+        <div class="field"><label for="inLiftSite">Elevator (building and which car)</label><input type="text" id="inLiftSite" placeholder="Freight elevator, loading dock level" autocomplete="off"></div>
+        <div class="field"><label>Session</label><div class="row"><span class="note" id="liftSessNote">No session yet.</span></div></div>
+      </div>
+      <div class="phase" id="phase" style="margin-top:14px"><div>1 · Doors open</div><div>2 · Departs</div><div>3 · Back</div></div>
+      <button class="bigtap blue" id="btnLift">Doors open<small>start a cycle</small></button>
+      <div class="row" style="margin-top:10px">
+        <button class="btn small" id="btnLiftUndo">Undo last tap</button>
+        <button class="btn small" data-photo>Clock for photo</button>
+        <button class="btn small" id="btnLiftNew">New session</button>
+      </div>
+    </div>
+    <div class="kpis" id="liftKpis" style="margin-top:14px"></div>
+    <div class="card">
+      <h3>Cycles</h3>
+      <div class="tablewrap"><table id="liftTable"></table></div>
+      <div class="field" style="margin-top:10px"><label for="liftNotes">Notes (loads carried, waits for doors, anything that slowed it)</label><textarea id="liftNotes"></textarea></div>
+      <label class="row note" style="margin-top:10px"><input type="checkbox" id="liftPhoto"> I took a setup photo with the clock in frame</label>
+    </div>
+  </section>
+
+  <!-- ================= RESULTS ================= -->
+  <section class="view" id="view-results" hidden>
+    <div class="eyebrow">A3 · Evidence</div>
+    <h1>What the bench test measured</h1>
+    <p>Every number here is computed from your taps. Toy values are amber and tagged <span class="tag a">assumed</span>; yours are mint and tagged <span class="tag m">measured</span>.</p>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Data shown"><button id="dsMine" class="on">My data</button><button id="dsExample">Example data</button></div>
+      <select id="condSel" aria-label="Site" style="width:auto;max-width:100%"></select>
+    </div>
+    <div class="banner ex" id="exBanner" hidden>Example data, made up to show what the results look like. It is not saved and is not yours.</div>
+    <div id="resEmpty" class="card" hidden><h2>No windows yet</h2><p>Count your first window on the <a href="#count" style="color:var(--accent)">Count</a> tab and time the elevator on the <a href="#lift" style="color:var(--accent)">Lift</a> tab. Results fill in here as you go. To see the layout first, switch to <b>Example data</b>.</p></div>
+
+    <div id="resBody">
+      <div class="card">
+        <h2>Toy vs measured</h2>
+        <div class="note">What the toy assumed, what you measured, and where to set the toy's sliders.</div>
+        <div id="vsRows"></div>
+        <div class="row" style="margin-top:10px">
+          <span class="note">Count one toy cart as</span>
+          <div class="seg" role="group" aria-label="Toy cart unit"><button id="basisArr" class="on">each arrival</button><button id="basisPk">packages ÷</button></div>
+          <input type="number" id="perCart" value="10" min="1" step="1" style="width:80px" aria-label="Packages per cart" inputmode="numeric">
+          <span class="note">packages per cart</span>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h2>Five repeats, and their spread</h2>
+          <div class="note">λ for each window of this site, with the mean and ±1 standard deviation.</div>
+          <canvas class="chart" id="chartLam"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>each window</span><span><i style="background:var(--amber)"></i>toy average (wave)</span></div>
+        </div>
+        <div class="card">
+          <h2>Lift cycles</h2>
+          <div class="note">Seconds per full cycle, each one you timed, against the toy's 120 s.</div>
+          <canvas class="chart" id="chartLift"></canvas>
+          <div class="legend"><span><i style="background:var(--blue)"></i>each cycle</span><span><i style="background:var(--amber)"></i>toy: 120 s</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Little's law on the real dock</h2>
+        <div class="note">The same known result as the toy's panel, checked on your counts: L (average inside) against λ × W.</div>
+        <div class="tablewrap"><table id="winTable"></table></div>
+      </div>
+
+      <div class="card">
+        <h2>A3 bench-test rules</h2>
+        <div class="checklist" id="checklist" style="margin-top:10px"></div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="field"><label for="inWrong">One sentence on what could have gone wrong</label><textarea id="inWrong" placeholder="e.g. I only watched late mornings, and staff estimated package counts for two vans."></textarea></div>
+          <div class="field"><label for="inCost">Materials cost ($)</label><input type="number" id="inCost" min="0" step="1" inputmode="decimal" placeholder="0">
+            <div class="note">Stopwatch app, clipboard and tally counter count. Keep it under $30.</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Raw numbers</h2>
+        <div class="note">Every tap, as recorded. This is the table the slides ask for.</div>
+        <details class="raw" style="margin-top:8px"><summary>Arrivals and departures</summary><div class="tablewrap"><table id="rawTable"></table></div></details>
+        <details class="raw" style="margin-top:8px"><summary>Lift cycles</summary><div class="tablewrap"><table id="rawLift"></table></div></details>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="btnCsv">Save CSV</button>
+          <button class="btn" id="btnCopyCsv">Copy CSV</button>
+          <button class="btn" id="btnCopySum">Copy summary</button>
+          <span class="note" id="copyNote"></span>
+        </div>
+        <textarea id="copyFallback" hidden readonly style="margin-top:10px;min-height:120px;font-family:var(--mono);font-size:12px"></textarea>
+      </div>
+
+      <div class="card" id="manageCard">
+        <h2>Fix a mistake</h2>
+        <div class="note">Remove a window or lift session you started by accident. Tap once, then again to confirm.</div>
+        <div id="manageList" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CONTRACT ================= -->
+  <section class="view" id="view-contract" hidden>
+    <div class="eyebrow">A3 · Moves 1 and 4</div>
+    <h1>Contract, prediction and lab log</h1>
+    <p>The contract is the grading datum. Write the prediction before you test it and lock it, so the time it was written is on record.</p>
+    <div class="card">
+      <h2>The contract</h2>
+      <div class="grid2" style="grid-template-columns:minmax(0,1fr);margin-top:8px">
+        <div class="field"><label for="cClaim">Claim: Our toy found ___ (with a number).</label><textarea id="cClaim"></textarea></div>
+        <div class="field"><label for="cCannot">Cannot know: It cannot know ___.</label><textarea id="cCannot"></textarea></div>
+        <div class="field"><label for="cTest">Test: We will measure ___ by ___; if we see ___, the toy is wrong.</label><textarea id="cTest"></textarea></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Prediction (Move 4)</h2>
+      <div class="note">Change one thing in the toy, write what it predicts for a window you have not counted yet, then lock it before you go out.</div>
+      <div class="field" style="margin-top:10px"><label for="cPred">Prediction</label><textarea id="cPred" placeholder="e.g. With arrivals set to the measured 7.4/hr and a 95 s lift cycle, the toy predicts an average of 0.9 vans inside and W = 7 min for Thursday 10:00–10:30."></textarea></div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="btnLock">Lock prediction</button><span class="lock" id="lockNote"></span></div>
+    </div>
+    <div class="card">
+      <h2>Lab log</h2>
+      <div class="note">Date, change, measurement, surprise. It becomes your process appendix.</div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="field"><label for="lgChange">Change</label><input type="text" id="lgChange" placeholder="Set lift cycle to measured 1.6 min"></div>
+        <div class="field"><label for="lgMeas">Measurement</label><input type="text" id="lgMeas" placeholder="Toy queue peaked at 3, real at 4"></div>
+        <div class="field" style="grid-column:1/-1"><label for="lgSurp">Surprise</label><input type="text" id="lgSurp" placeholder="Vans arrive in pairs, never alone"></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="btnLog">Add entry</button></div>
+      <div id="logList" style="margin-top:12px"></div>
+    </div>
+  </section>
+</main>
+
+<div class="photoclock" id="photoClock" hidden role="dialog" aria-label="Clock for photo">
+  <div>
+    <div class="pt" id="pcTime">00:00:00</div>
+    <div class="pd" id="pcDate"></div>
+    <div class="ps" id="pcSite"></div>
+    <div class="ruler" id="pcRuler" aria-hidden="true"></div>
+    <div class="pf">UnderTheBlock Field Kit · ARC 327R · tap anywhere to close</div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+/* =========================================================
+   STATE AND STORAGE
+   Shared store (db capability) when available: windows/, lift/, meta/contract, log/.
+   Falls back to this browser's storage when the store cannot be reached.
+   ========================================================= */
+const S = { windows: new Map(), lift: new Map(), log: new Map(), contract: {} };
+const dirty = new Map();     // path -> latest local body not yet confirmed
+const writers = new Map();   // path -> { pending, busy }
+let db = null, downloads = null, mode = 'loading', failing = 0;
+const LS_KEY = 'utb-fieldkit-v1';
+
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function setChip(state, text) {
+  const c = $('saveChip'); c.className = 'savechip ' + state; $('saveText').textContent = text;
+}
+function lsLoad() {
+  try { const raw = localStorage.getItem(LS_KEY); if (!raw) return; const o = JSON.parse(raw);
+    for (const k of ['windows', 'lift', 'log']) S[k] = new Map(Object.entries(o[k] || {}));
+    S.contract = o.contract || {};
+  } catch (e) { /* storage blocked: keep in memory */ }
+}
+function lsSave() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ windows: Object.fromEntries(S.windows), lift: Object.fromEntries(S.lift), log: Object.fromEntries(S.log), contract: S.contract })); } catch (e) { /* ignore */ }
+}
+function coll(path) { const [c] = path.split('/'); return c; }
+
+function put(path, body) {            // local first, then the store
+  const [c, id] = path.split('/');
+  if (c === 'meta') S.contract = body; else S[c].set(id, body);
+  render();
+  if (mode !== 'db') { lsSave(); return; }
+  dirty.set(path, body);
+  let w = writers.get(path); if (!w) { w = { pending: null, busy: false }; writers.set(path, w); }
+  w.pending = { op: 'set', body };
+  flush(path);
+}
+function remove(path) {
+  const [c, id] = path.split('/');
+  if (c === 'meta') S.contract = {}; else S[c].delete(id);
+  render();
+  if (mode !== 'db') { lsSave(); return; }
+  dirty.set(path, null);
+  let w = writers.get(path); if (!w) { w = { pending: null, busy: false }; writers.set(path, w); }
+  w.pending = { op: 'delete' };
+  flush(path);
+}
+async function flush(path) {
+  const w = writers.get(path); if (!w || w.busy) return;
+  w.busy = true; setChip('busy', 'saving…');
+  while (w.pending) {
+    const job = w.pending; w.pending = null;
+    try {
+      if (job.op === 'set') await db.doc(path).set(job.body); else await db.doc(path).delete();
+      failing = 0;
+    } catch (e) {
+      if (e && (e.code === 'invalid_argument' || e.code === 'quota_exceeded')) {
+        setChip('bad', e.code === 'quota_exceeded' ? 'store full' : 'cannot save here');
+        alertBanner(e.code === 'quota_exceeded' ? 'The store is full. Remove an old window under Results → Fix a mistake.' : 'This view cannot save to the shared store, so changes stay in this browser only.');
+        w.busy = false; lsSave(); return;
+      }
+      failing++;
+      if (!w.pending) w.pending = job;            // keep the newest, retry
+      setChip('bad', 'offline · retrying');
+      lsSave();
+      await new Promise((r) => setTimeout(r, Math.min(15000, 2000 * failing) + Math.random() * 600));
+    }
+  }
+  w.busy = false;
+  dirty.delete(path);
+  let anyBusy = false; writers.forEach((x) => { if (x.busy || x.pending) anyBusy = true; });
+  if (!anyBusy) setChip('ok', 'saved');
+}
+function alertBanner(msg) {
+  let b = $('storeBanner');
+  if (!b) { b = document.createElement('div'); b.id = 'storeBanner'; b.className = 'banner'; document.querySelector('main').prepend(b); }
+  b.textContent = msg;
+}
+
+async function initStore() {
+  lsLoad(); render();
+  const c = window.claude;
+  if (c && typeof c.use === 'function') {
+    try { db = await c.use('db'); } catch (e) { db = null; }
+    try { downloads = await c.use('downloads'); } catch (e) { downloads = null; }
+  }
+  refreshCsvButton();
+  if (!db) {
+    mode = 'local'; setChip('', 'this browser only');
+    alertBanner('Your counts are saved in this browser only, so use the same phone and browser for all five windows. Copy or save the CSV from Results when you finish.');
+    render(); return;
+  }
+  mode = 'db'; setChip('busy', 'loading…');
+  let first = { windows: false, lift: false, log: false, meta: false };
+  const timer = setTimeout(() => { if (Object.values(first).some((v) => !v)) setChip('bad', 'store not answering'); }, 10000);
+  const done = (k, snap) => { if (!snap.metadata.fromCache) first[k] = true; if (Object.values(first).every(Boolean)) { clearTimeout(timer); setChip('ok', 'saved'); } };
+  const onErr = (e) => { setChip('bad', 'store error'); alertBanner('The shared store stopped answering (' + (e && e.code) + '). Reload the page; counts taken since then are kept in this browser.'); mode = 'local'; lsSave(); };
+  for (const k of ['windows', 'lift', 'log']) {
+    db.collection(k).onSnapshot((snap) => {
+      const m = new Map();
+      snap.docs.forEach((d) => m.set(d.id, d.data()));
+      dirty.forEach((body, path) => { if (coll(path) === k) { const id = path.split('/')[1]; if (body === null) m.delete(id); else m.set(id, body); } });
+      S[k] = m; done(k, snap); render();
+    }, onErr);
+  }
+  db.doc('meta/contract').onSnapshot((snap) => {
+    const local = dirty.get('meta/contract');
+    S.contract = local || (snap.exists ? snap.data() : {}) || {};
+    done('meta', snap); render();
+  }, onErr);
+}
+
+/* =========================================================
+   MATHS
+   ========================================================= */
+const TOY = { peak: 16, mean: 16 * 2 / Math.PI, cycleMin: 2, mu: 30 };
+const MIN = 60000;
+function winStats(w, now) {
+  const end = w.end || now || Date.now();
+  const T = Math.max(1e-6, (end - w.start) / MIN);
+  const ev = w.events || [];
+  const deps = ev.filter((e) => e.d != null);
+  const area = ev.reduce((s, e) => s + Math.max(0, (Math.min(e.d != null ? e.d : end, end) - Math.max(e.a, w.start)) / MIN), 0);
+  const lam = ev.length / T;
+  const W = deps.length ? deps.reduce((s, e) => s + (e.d - e.a) / MIN, 0) / deps.length : null;
+  const L = area / T;
+  const lamW = W != null ? lam * W : null;
+  const gap = lamW != null && L > 0.005 ? (lamW - L) / L : null;
+  const pk = ev.filter((e) => e.p != null);
+  const pkTotal = pk.reduce((s, e) => s + e.p, 0);
+  return { T, n: ev.length, lamHr: lam * 60, W, L, lamW, gap, inside: ev.filter((e) => e.d == null).length,
+    pkPerArr: pk.length ? pkTotal / pk.length : null, pkHr: pk.length ? (pkTotal / pk.length) * lam * 60 : null, pkCount: pk.length };
+}
+function agg(vals) {
+  const v = vals.filter((x) => x != null && isFinite(x));
+  if (!v.length) return null;
+  const mean = v.reduce((a, b) => a + b, 0) / v.length;
+  const sd = v.length > 1 ? Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / (v.length - 1)) : 0;
+  return { n: v.length, mean, sd, min: Math.min(...v), max: Math.max(...v) };
+}
+function liftCycles(sess) { return (sess.cycles || []).filter((c) => c.b != null).map((c) => ({ ...c, load: c.c != null ? (c.c - c.s) / 1000 : null, travel: c.c != null ? (c.b - c.c) / 1000 : null, total: (c.b - c.s) / 1000 })); }
+const f = (v, d = 1) => (v == null || !isFinite(v)) ? '—' : v.toFixed(d);
+const hms = (t) => { const d = new Date(t); return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); };
+const iso = (t) => t == null ? '' : new Date(t).toISOString();
+const dur = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const condKey = (w) => (w.site || 'Unnamed site').trim();
+
+/* =========================================================
+   VIEW STATE
+   ========================================================= */
+let view = 'count', example = false, basis = 'arr', chosenCond = null;
+const undo = [];  // in-page undo stack for the active window: {type, k}
+let liftUndo = [];
+let pendingPk = null;  // event key awaiting a package count
+
+function activeWindow() { for (const [id, w] of S.windows) if (!w.end) return [id, w]; return null; }
+function activeLift() {
+  let best = null;
+  for (const [id, s] of S.lift) if (!s.closed && (!best || s.start > best[1].start)) best = [id, s];
+  return best;
+}
+
+/* ---------- routing ---------- */
+function route() {
+  const h = (location.hash || '').replace('#', '');
+  view = ['count', 'lift', 'results', 'contract'].includes(h) ? h : 'count';
+  document.querySelectorAll('.view').forEach((v) => { v.hidden = v.id !== 'view-' + view; });
+  document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('on', a.dataset.view === view));
+  render();
+}
+window.addEventListener('hashchange', route);
+
+/* =========================================================
+   COUNT
+   ========================================================= */
+$('btnStart').addEventListener('click', () => {
+  if (activeWindow()) return;
+  const site = $('inSite').value.trim() || 'Unnamed site';
+  const unit = $('inUnit').value;
+  const planned = Math.max(5, Math.min(180, parseInt($('inMin').value, 10) || 30));
+  const n = [...S.windows.values()].filter((w) => condKey(w) === site).length + 1;
+  const id = 'w' + uid();
+  put('windows/' + id, { site, unit, planned, askPk: $('inPk').value === 'yes', n, start: Date.now(), end: null, events: [], notes: '', photo: false });
+  undo.length = 0;
+});
+function updateWin(mut) {
+  const a = activeWindow(); if (!a) return;
+  const [id, w] = a;
+  const next = JSON.parse(JSON.stringify(w));
+  mut(next);
+  put('windows/' + id, next);
+}
+$('btnArrive').addEventListener('click', () => {
+  const a = activeWindow(); if (!a) return;
+  const k = (a[1].events || []).reduce((m, e) => Math.max(m, e.k), 0) + 1;
+  updateWin((w) => { w.events.push({ k, a: Date.now(), d: null, p: null }); });
+  undo.push({ type: 'arr', k });
+  if (a[1].askPk) { pendingPk = k; $('pkVal').value = 1; }
+  if (navigator.vibrate) try { navigator.vibrate(18); } catch (e) {}
+});
+function depart(k) {
+  updateWin((w) => { const e = w.events.find((x) => x.k === k); if (e && e.d == null) e.d = Date.now(); });
+  undo.push({ type: 'dep', k });
+  if (navigator.vibrate) try { navigator.vibrate(10); } catch (e) {}
+}
+$('chips').addEventListener('click', (ev) => { const b = ev.target.closest('[data-k]'); if (b) depart(parseInt(b.dataset.k, 10)); });
+$('btnOldest').addEventListener('click', () => {
+  const a = activeWindow(); if (!a) return;
+  const open = (a[1].events || []).filter((e) => e.d == null).sort((x, y) => x.a - y.a);
+  if (open.length) depart(open[0].k);
+});
+$('btnUndo').addEventListener('click', () => {
+  const u = undo.pop(); if (!u) return;
+  updateWin((w) => {
+    const e = w.events.find((x) => x.k === u.k); if (!e) return;
+    if (u.type === 'arr') w.events = w.events.filter((x) => x.k !== u.k);
+    else if (u.type === 'dep') e.d = null;
+    else if (u.type === 'pk') e.p = null;
+  });
+  if (pendingPk === u.k) pendingPk = null;
+});
+$('pkMinus').addEventListener('click', () => { $('pkVal').value = Math.max(0, (parseInt($('pkVal').value, 10) || 0) - 1); });
+$('pkPlus').addEventListener('click', () => { $('pkVal').value = (parseInt($('pkVal').value, 10) || 0) + 1; });
+$('pkSave').addEventListener('click', () => {
+  const k = pendingPk; if (k == null) return;
+  const v = Math.max(0, parseInt($('pkVal').value, 10) || 0);
+  updateWin((w) => { const e = w.events.find((x) => x.k === k); if (e) e.p = v; });
+  undo.push({ type: 'pk', k }); pendingPk = null; render();
+});
+$('pkSkip').addEventListener('click', () => { pendingPk = null; render(); });
+let notesTimer = null;
+$('liveNotes').addEventListener('input', () => { clearTimeout(notesTimer); notesTimer = setTimeout(() => updateWin((w) => { w.notes = $('liveNotes').value; }), 700); });
+$('livePhoto').addEventListener('change', () => updateWin((w) => { w.photo = $('livePhoto').checked; }));
+$('btnEnd').addEventListener('click', () => {
+  clearTimeout(notesTimer);
+  updateWin((w) => { w.notes = $('liveNotes').value; w.end = Date.now(); });
+  undo.length = 0; pendingPk = null;
+  location.hash = 'results';
+});
+
+function renderCount(now) {
+  const a = activeWindow();
+  $('countSetup').hidden = !!a; $('countLive').hidden = !a;
+  if (!a) {
+    const site = $('inSite').value.trim();
+    const n = site ? [...S.windows.values()].filter((w) => condKey(w) === site && w.end).length : 0;
+    $('repeatNote').textContent = site ? `${n} of 5 windows done for this site` : 'Use the same site name for all five repeats.';
+    return;
+  }
+  const [, w] = a;
+  const st = winStats(w, now);
+  const el = now - w.start, left = w.planned * MIN - el;
+  $('liveTitle').textContent = `Window ${w.n} · ${w.site} · counting ${w.unit}s`;
+  $('liveClock').textContent = hms(now);
+  $('liveElapsed').innerHTML = `elapsed <b>${dur(el)}</b> · ${left > 0 ? 'left ' + dur(left) : '<b style="color:var(--warn)">time is up, end the window</b>'}`;
+  $('liveBar').style.width = Math.min(100, (el / (w.planned * MIN)) * 100) + '%';
+  $('arriveSub').textContent = `${st.n} so far · tap when a ${w.unit} joins`;
+  const open = (w.events || []).filter((e) => e.d == null).sort((x, y) => x.a - y.a);
+  const chipsHtml = open.map((e) => `<button class="chip" data-k="${e.k}" aria-label="Number ${e.k} left"><span class="k">#${e.k}</span><span class="t">${dur(now - e.a)}${e.p != null ? ' · ' + e.p + ' pk' : ''}</span><span class="go">left</span></button>`).join('');
+  if ($('chips')._h !== chipsHtml) { $('chips').innerHTML = chipsHtml; $('chips')._h = chipsHtml; }
+  $('chipsEmpty').hidden = open.length > 0;
+  const k = `<div class="kpi"><div class="v">${f(st.lamHr, 1)}</div><div class="l">λ arrivals per hour</div></div>` +
+    `<div class="kpi"><div class="v">${st.W == null ? '—' : f(st.W, 1)}</div><div class="l">W minutes inside (mean of ${(w.events || []).length - st.inside} left)</div></div>` +
+    `<div class="kpi"><div class="v">${f(st.L, 2)}</div><div class="l">L average inside</div></div>` +
+    `<div class="kpi"><div class="v">${st.inside}</div><div class="l">inside now</div></div>`;
+  if ($('liveKpis')._h !== k) { $('liveKpis').innerHTML = k; $('liveKpis')._h = k; }
+  const feed = (w.events || []).slice().sort((x, y) => Math.max(y.a, y.d || 0) - Math.max(x.a, x.d || 0)).slice(0, 30)
+    .map((e) => `${hms(e.a)} #${e.k} arrived${e.p != null ? ' · ' + e.p + ' pk' : ''}${e.d ? ` → left ${hms(e.d)} (${dur(e.d - e.a)})` : ''}`).join('<br>') || 'No taps yet.';
+  if ($('feed')._h !== feed) { $('feed').innerHTML = feed; $('feed')._h = feed; }
+  if (document.activeElement !== $('liveNotes') && $('liveNotes').value !== (w.notes || '')) $('liveNotes').value = w.notes || '';
+  $('livePhoto').checked = !!w.photo;
+  const ask = pendingPk != null && (w.events || []).some((e) => e.k === pendingPk);
+  $('pkAsk').hidden = !ask; if (ask) $('pkWho').textContent = '#' + pendingPk;
+  $('btnUndo').disabled = !undo.length;
+}
+
+/* =========================================================
+   LIFT
+   ========================================================= */
+function ensureLift() {
+  let a = activeLift();
+  if (a) return a;
+  const id = 'l' + uid();
+  const body = { site: $('inLiftSite').value.trim() || 'Unnamed elevator', start: Date.now(), cycles: [], notes: '', photo: false, closed: false };
+  put('lift/' + id, body);
+  return [id, body];
+}
+function updateLift(mut) {
+  const [id, s] = ensureLift();
+  const next = JSON.parse(JSON.stringify(s)); mut(next); put('lift/' + id, next);
+}
+$('btnLift').addEventListener('click', () => {
+  const now = Date.now();
+  updateLift((s) => {
+    const last = s.cycles[s.cycles.length - 1];
+    if (!last || last.b != null) { s.cycles.push({ s: now, c: null, b: null }); liftUndo.push('s'); }
+    else if (last.c == null) { last.c = now; liftUndo.push('c'); }
+    else { last.b = now; liftUndo.push('b'); }
+  });
+  if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {}
+});
+$('btnLiftUndo').addEventListener('click', () => {
+  const a = activeLift(); if (!a) return;
+  const u = liftUndo.pop(); if (!u) return;
+  updateLift((s) => { const last = s.cycles[s.cycles.length - 1]; if (!last) return; if (u === 's') s.cycles.pop(); else last[u] = null; });
+});
+$('btnLiftNew').addEventListener('click', () => {
+  const a = activeLift();
+  if (a) { const next = JSON.parse(JSON.stringify(a[1])); next.closed = true; put('lift/' + a[0], next); }
+  liftUndo = [];
+});
+let liftNotesTimer = null;
+$('liftNotes').addEventListener('input', () => { clearTimeout(liftNotesTimer); liftNotesTimer = setTimeout(() => updateLift((s) => { s.notes = $('liftNotes').value; }), 700); });
+$('liftPhoto').addEventListener('change', () => updateLift((s) => { s.photo = $('liftPhoto').checked; }));
+$('inLiftSite').addEventListener('change', () => { const a = activeLift(); if (a) updateLift((s) => { s.site = $('inLiftSite').value.trim() || s.site; }); });
+
+function renderLift(now) {
+  const a = activeLift();
+  const s = a ? a[1] : null;
+  const last = s && s.cycles.length ? s.cycles[s.cycles.length - 1] : null;
+  const step = !last || last.b != null ? 0 : last.c == null ? 1 : 2;
+  const labels = [['Doors open', 'start a cycle at the dock floor'], ['Departs', 'doors closed, it leaves'], ['Back', 'doors open again at the dock floor']];
+  const running = last && last.b == null;
+  const t = running ? dur(now - last.s) : '';
+  $('btnLift').innerHTML = `${labels[step][0]}<small>${labels[step][1]}${running ? ' · ' + t : ''}</small>`;
+  [...$('phase').children].forEach((d, i) => { d.className = i === step ? 'on' : (running && i < step ? 'done' : ''); });
+  if (s && document.activeElement !== $('inLiftSite') && !$('inLiftSite').value) $('inLiftSite').value = s.site;
+  $('liftSessNote').textContent = s ? `Started ${hms(s.start)} · ${s.cycles.filter((c) => c.b != null).length} cycles` : 'Starts with your first tap.';
+  const cyc = s ? liftCycles(s) : [];
+  const A = agg(cyc.map((c) => c.total));
+  const k = `<div class="kpi"><div class="v">${cyc.length}</div><div class="l">cycles timed (need 5)</div></div>` +
+    `<div class="kpi"><div class="v">${A ? f(A.mean, 0) + ' s' : '—'}</div><div class="l">mean cycle ± ${A ? f(A.sd, 0) : '—'} s</div></div>` +
+    `<div class="kpi"><div class="v">${A ? f(A.mean / 60, 2) : '—'}</div><div class="l">minutes, for the toy's lift-cycle slider</div></div>` +
+    `<div class="kpi"><div class="v">${A ? f(3600 / A.mean, 1) : '—'}</div><div class="l">μ carts per hour (toy: 30)</div></div>`;
+  if ($('liftKpis')._h !== k) { $('liftKpis').innerHTML = k; $('liftKpis')._h = k; }
+  const rows = (s ? s.cycles : []).map((c, i) => `<tr><td class="l">${i + 1}</td><td>${hms(c.s)}</td><td>${c.c ? hms(c.c) : '…'}</td><td>${c.b ? hms(c.b) : '…'}</td><td>${c.c ? f((c.c - c.s) / 1000, 0) : '—'}</td><td>${c.b && c.c ? f((c.b - c.c) / 1000, 0) : '—'}</td><td>${c.b ? f((c.b - c.s) / 1000, 0) : '—'}</td></tr>`).join('');
+  const tbl = `<tr><th class="l">#</th><th>doors open</th><th>departs</th><th>back</th><th>load s</th><th>travel s</th><th>cycle s</th></tr>` + (rows || `<tr><td class="l" colspan="7" style="color:var(--dim)">No cycles yet.</td></tr>`);
+  if ($('liftTable')._h !== tbl) { $('liftTable').innerHTML = tbl; $('liftTable')._h = tbl; }
+  if (s && document.activeElement !== $('liftNotes') && $('liftNotes').value !== (s.notes || '')) $('liftNotes').value = s.notes || '';
+  $('liftPhoto').checked = !!(s && s.photo);
+  $('btnLiftUndo').disabled = !liftUndo.length;
+}
+
+/* =========================================================
+   RESULTS
+   ========================================================= */
+function exampleData() {
+  const base = new Date(); base.setHours(10, 0, 0, 0);
+  const t0 = base.getTime() - 6 * 86400000;
+  const windows = new Map(), lift = new Map();
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let n = 1; n <= 5; n++) {
+    const start = t0 + (n - 1) * 86400000 + (n % 2) * 1800000, events = [];
+    let t = start + rnd() * 240000, k = 1;
+    while (t < start + 30 * MIN) {
+      const stay = (3 + rnd() * 7) * MIN, p = 2 + Math.floor(rnd() * 14);
+      events.push({ k: k++, a: t, d: t + stay < start + 30 * MIN ? t + stay : null, p });
+      t += (2 + rnd() * 8) * MIN;
+    }
+    windows.set('ex' + n, { site: 'Example dock', unit: 'van', planned: 30, n, start, end: start + 30 * MIN, events, notes: '', photo: n !== 3 });
+  }
+  const cycles = []; let t = t0 + 4 * 86400000;
+  for (let i = 0; i < 6; i++) { const load = (25 + rnd() * 20) * 1000, trav = (55 + rnd() * 25) * 1000; cycles.push({ s: t, c: t + load, b: t + load + trav }); t += load + trav + 60000; }
+  lift.set('exl', { site: 'Example freight elevator', start: t0, cycles, notes: '', photo: true, closed: true });
+  return { windows, lift, contract: { wrong: 'Example: only weekday late mornings were watched.', cost: 0 } };
+}
+$('dsMine').addEventListener('click', () => { example = false; render(); });
+$('dsExample').addEventListener('click', () => { example = true; render(); });
+$('basisArr').addEventListener('click', () => { basis = 'arr'; render(); });
+$('basisPk').addEventListener('click', () => { basis = 'pk'; render(); });
+$('perCart').addEventListener('input', () => render());
+$('condSel').addEventListener('change', () => { chosenCond = $('condSel').value; render(); });
+let wrongTimer = null;
+$('inWrong').addEventListener('input', () => { if (example) return; clearTimeout(wrongTimer); wrongTimer = setTimeout(() => put('meta/contract', { ...S.contract, wrong: $('inWrong').value }), 700); });
+$('inCost').addEventListener('change', () => { if (example) return; const v = $('inCost').value; put('meta/contract', { ...S.contract, cost: v === '' ? null : Number(v) }); });
+
+function dataset() { return example ? exampleData() : { windows: S.windows, lift: S.lift, contract: S.contract }; }
+function conditions(D) {
+  const m = new Map();
+  for (const [id, w] of D.windows) { if (!w.end) continue; const k = condKey(w); if (!m.has(k)) m.set(k, []); m.get(k).push([id, w]); }
+  for (const v of m.values()) v.sort((a, b) => a[1].start - b[1].start);
+  return m;
+}
+function computeAll(D) {
+  const conds = conditions(D);
+  let cond = chosenCond && conds.has(chosenCond) ? chosenCond : null;
+  if (!cond) { let best = 0; for (const [k, v] of conds) if (v.length > best) { best = v.length; cond = k; } }
+  const wins = cond ? conds.get(cond) : [];
+  const stats = wins.map(([id, w]) => ({ id, w, st: winStats(w) }));
+  const perCart = Math.max(1, Number($('perCart').value) || 10);
+  const lamOf = (x) => basis === 'pk' ? (x.st.pkHr != null ? x.st.pkHr / perCart : null) : x.st.lamHr;
+  const lam = agg(stats.map(lamOf));
+  const W = agg(stats.map((x) => x.st.W));
+  const L = agg(stats.map((x) => x.st.L));
+  const allCycles = []; for (const [id, s] of D.lift) liftCycles(s).forEach((c) => allCycles.push({ ...c, sess: id, site: s.site }));
+  const cyc = agg(allCycles.map((c) => c.total));
+  return { conds, cond, stats, lam, W, L, cycles: allCycles, cyc, perCart, lamOf };
+}
+function renderResults() {
+  const D = dataset();
+  const R = computeAll(D);
+  $('dsMine').classList.toggle('on', !example); $('dsExample').classList.toggle('on', example);
+  $('basisArr').classList.toggle('on', basis === 'arr'); $('basisPk').classList.toggle('on', basis === 'pk');
+  $('exBanner').hidden = !example;
+  const opts = [...R.conds.keys()].map((k) => `<option ${k === R.cond ? 'selected' : ''}>${esc(k)}</option>`).join('');
+  if ($('condSel')._h !== opts) { $('condSel').innerHTML = opts; $('condSel')._h = opts; }
+  $('condSel').hidden = R.conds.size < 2;
+  const empty = !R.stats.length && !R.cycles.length;
+  $('resEmpty').hidden = !empty; $('resBody').hidden = empty;
+  $('manageCard').hidden = example;
+  if (empty) return;
+
+  // toy vs measured
+  const lamMean = R.lam ? R.lam.mean : null;
+  const slSteady = lamMean != null ? Math.round(lamMean) : null;
+  const slWave = lamMean != null ? Math.round(lamMean * Math.PI / 2) : null;
+  const cycMin = R.cyc ? R.cyc.mean / 60 : null;
+  const mu = R.cyc ? 3600 / R.cyc.mean : null;
+  const rho = lamMean != null && mu ? lamMean / mu : null;
+  const unitWord = basis === 'pk' ? 'carts' : (R.stats[0] ? R.stats[0].w.unit + 's' : 'arrivals');
+  const below8 = (v) => v != null && v < 8 ? ' <span class="tag s">below the slider\'s 8 minimum</span>' : '';
+  const vs = [
+    ['Arrival rate λ', `${unitWord} per hour, mean of ${R.lam ? R.lam.n : 0} windows`, `${f(TOY.mean, 1)}`, 'avg of a 16/hr peak wave', R.lam ? `${f(R.lam.mean, 1)}` : '—', R.lam ? `± ${f(R.lam.sd, 1)} · range ${f(R.lam.min, 1)}–${f(R.lam.max, 1)}` : 'count a window'],
+    ['Lift cycle', `minutes per full cycle, ${R.cyc ? R.cyc.n : 0} cycles`, `${f(TOY.cycleMin, 2)}`, 'μ = 30 carts/hr', cycMin != null ? `${f(cycMin, 2)}` : '—', mu != null ? `± ${f(R.cyc.sd / 60, 2)} · μ = ${f(mu, 1)} carts/hr` : 'time the lift'],
+    ['Load on the lift ρ', 'λ ÷ μ: below 1 the queue clears', `${f(TOY.mean / TOY.mu, 2)}`, 'average, wave mode', rho != null ? f(rho, 2) : '—', rho != null ? (rho >= 1 ? '<span style="color:var(--warn)">queue never clears</span>' : 'queue clears') : 'needs both'],
+    ['Time inside W', 'minutes from arrival to leaving', '—', 'toy measures this live', R.W ? f(R.W.mean, 1) : '—', R.W ? `± ${f(R.W.sd, 1)} min` : ''],
+  ];
+  let html = `<div class="vsrow" style="padding-top:4px"><div></div><div class="cap">toy <span class="tag a">assumed</span></div><div class="cap">you <span class="tag m">measured</span></div></div>` +
+    vs.map((r) => `<div class="vsrow"><div><div class="what">${r[0]}</div><div class="cap">${r[1]}</div></div><div><div class="big toy">${r[2]}</div><div class="cap">${r[3]}</div></div><div><div class="big meas">${r[4]}</div><div class="cap">${r[5]}</div></div></div>`).join('');
+  html += `<div class="card inner" style="margin-top:12px"><h3>Set the toy to your numbers</h3><div class="note" style="font-size:13.5px;color:var(--body)">` +
+    (lamMean != null ? `Steady mode: arrivals slider <b class="mono" style="color:var(--accent)">${slSteady}/hr</b>${below8(slSteady)}. Morning-wave mode: peak <b class="mono" style="color:var(--accent)">${slWave}/hr</b>${below8(slWave)} (the wave's average is 2/π of its peak). ` : 'Count at least one window to get an arrivals setting. ') +
+    (cycMin != null ? `Lift cycle slider <b class="mono" style="color:var(--accent)">${f(Math.min(4, Math.max(0.5, cycMin)), 1)} min</b>${cycMin < 0.5 || cycMin > 4 ? ' <span class="tag s">outside the slider\'s 0.5–4 range</span>' : ''}.` : 'Time the lift to get a lift-cycle setting.') +
+    `</div></div>`;
+  if ($('vsRows')._h !== html) { $('vsRows').innerHTML = html; $('vsRows')._h = html; }
+
+  // window table
+  const rows = R.stats.map((x) => {
+    const g = x.st.gap;
+    const gc = g == null ? '' : Math.abs(g) <= 0.1 ? 'good' : 'bad';
+    return `<tr><td class="l">${x.w.n}</td><td class="l">${new Date(x.w.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} ${hms(x.w.start).slice(0, 5)}</td><td>${f(x.st.T, 0)}</td><td>${x.st.n}</td><td>${f(x.st.lamHr, 1)}</td><td>${x.st.W == null ? '—' : f(x.st.W, 1)}</td><td>${f(x.st.L, 2)}</td><td>${x.st.lamW == null ? '—' : f(x.st.lamW, 2)}</td><td><span class="${gc}">${g == null ? '—' : (Math.round(g * 100) || 0) + '%'}</span></td><td>${x.st.inside}</td><td>${x.st.pkPerArr == null ? '—' : f(x.st.pkPerArr, 1)}</td><td>${x.w.photo ? '✓' : '<span class="bad">no</span>'}</td></tr>`;
+  }).join('');
+  const lamArr = agg(R.stats.map((x) => x.st.lamHr));
+  const sum = lamArr ? `<tr><td class="l" colspan="4" style="color:var(--text)">mean ± sd</td><td>${f(lamArr.mean, 1)} ± ${f(lamArr.sd, 1)}</td><td>${R.W ? f(R.W.mean, 1) + ' ± ' + f(R.W.sd, 1) : '—'}</td><td>${R.L ? f(R.L.mean, 2) : '—'}</td><td colspan="5"></td></tr>` : '';
+  const wt = `<tr><th class="l">window</th><th class="l">start</th><th>min</th><th>arrivals</th><th>λ /hr</th><th>W min</th><th>L</th><th>λ × W</th><th>gap</th><th>inside at end</th><th>pk / arrival</th><th>photo</th></tr>` + (rows || `<tr><td class="l" colspan="12" style="color:var(--dim)">No finished windows for this site yet.</td></tr>`) + sum;
+  if ($('winTable')._h !== wt) { $('winTable').innerHTML = wt; $('winTable')._h = wt; }
+
+  // checklist
+  const C = D.contract || {};
+  const nW = R.stats.length, nC = R.cycles.length;
+  const photosOk = R.stats.length > 0 && R.stats.every((x) => x.w.photo);
+  const span = R.stats.length ? (Math.max(...R.stats.map((x) => x.w.end)) - Math.min(...R.stats.map((x) => x.w.start))) / 3600000 : 0;
+  const checks = [
+    [nW >= 5, `<b>At least five repeats per condition.</b> ${nW} of 5 windows at ${esc(R.cond || 'this site')}${nC ? ` · ${nC} of 5 lift cycles` : ''}.`],
+    [nC >= 5, `<b>Five repeats of the lift cycle.</b> ${nC} timed.`],
+    [photosOk, `<b>A ruler or a clock in every photo.</b> ${R.stats.filter((x) => x.w.photo).length} of ${nW} windows marked. Use <i>Clock for photo</i> on any tab.`],
+    [nW > 0 || nC > 0, `<b>Raw numbers in a table, not only a chart.</b> Below, and in the CSV.`],
+    [!!(C.wrong && C.wrong.trim().length > 15), `<b>One sentence on what could have gone wrong.</b> ${C.wrong && C.wrong.trim() ? 'Written.' : 'Not yet.'}`],
+    [C.cost != null && C.cost !== '' && Number(C.cost) < 30, `<b>One afternoon, materials under $30.</b> ${C.cost != null && C.cost !== '' ? '$' + Number(C.cost) : 'enter the cost'}${span > 6 ? ` · your windows spread over ${f(span / 24, 1)} days, which is fine to note` : ''}.`],
+  ];
+  const ch = checks.map(([ok, t]) => `<div class="check ${ok ? 'ok' : 'no'}"><div class="mk">${ok ? '✓' : '!'}</div><div>${t}</div></div>`).join('');
+  if ($('checklist')._h !== ch) { $('checklist').innerHTML = ch; $('checklist')._h = ch; }
+  if (document.activeElement !== $('inWrong') && $('inWrong').value !== (C.wrong || '')) $('inWrong').value = C.wrong || '';
+  if (document.activeElement !== $('inCost')) $('inCost').value = C.cost == null ? '' : C.cost;
+  $('inWrong').readOnly = example; $('inCost').readOnly = example;
+
+  // raw tables
+  const raw = [];
+  for (const x of R.stats) for (const e of x.w.events) raw.push(`<tr><td class="l">${x.w.n}</td><td>${e.k}</td><td>${hms(e.a)}</td><td>${e.d ? hms(e.d) : 'inside at end'}</td><td>${e.d ? f((e.d - e.a) / MIN, 2) : '—'}</td><td>${e.p == null ? '—' : e.p}</td></tr>`);
+  const rt = `<tr><th class="l">window</th><th>#</th><th>arrived</th><th>left</th><th>minutes</th><th>packages</th></tr>` + (raw.join('') || `<tr><td class="l" colspan="6">—</td></tr>`);
+  if ($('rawTable')._h !== rt) { $('rawTable').innerHTML = rt; $('rawTable')._h = rt; }
+  const rl = `<tr><th class="l">elevator</th><th>#</th><th>doors open</th><th>departs</th><th>back</th><th>load s</th><th>travel s</th><th>cycle s</th></tr>` +
+    (R.cycles.map((c, i) => `<tr><td class="l">${esc(c.site)}</td><td>${i + 1}</td><td>${hms(c.s)}</td><td>${c.c ? hms(c.c) : '—'}</td><td>${hms(c.b)}</td><td>${f(c.load, 0)}</td><td>${f(c.travel, 0)}</td><td>${f(c.total, 0)}</td></tr>`).join('') || `<tr><td class="l" colspan="8">—</td></tr>`);
+  if ($('rawLift')._h !== rl) { $('rawLift').innerHTML = rl; $('rawLift')._h = rl; }
+
+  // manage
+  if (!example) {
+    const items = [...S.windows.entries()].sort((a, b) => b[1].start - a[1].start).map(([id, w]) => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--rule2);padding:8px 0"><span class="mono" style="font-size:12.5px">Window ${w.n} · ${esc(w.site)} · ${new Date(w.start).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${(w.events || []).length} arrivals${w.end ? '' : ' · running'}</span><button class="btn small warn" data-del="windows/${id}">Delete</button></div>`)
+      .concat([...S.lift.entries()].sort((a, b) => b[1].start - a[1].start).map(([id, s]) => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--rule2);padding:8px 0"><span class="mono" style="font-size:12.5px">Lift · ${esc(s.site)} · ${new Date(s.start).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${liftCycles(s).length} cycles</span><button class="btn small warn" data-del="lift/${id}">Delete</button></div>`)).join('');
+    const mh = items || '<div class="note">Nothing recorded yet.</div>';
+    if ($('manageList')._h !== mh) { $('manageList').innerHTML = mh; $('manageList')._h = mh; }
+  }
+  drawCharts(R);
+}
+$('manageList').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-del]'); if (!b) return;
+  if (b.dataset.armed) { remove(b.dataset.del); return; }
+  b.dataset.armed = '1'; b.textContent = 'Tap again to delete';
+  setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Delete'; } }, 4000);
+});
+
+function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function prepCanvas(cv) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = Math.max(100, cv.clientWidth), H = Math.max(100, cv.clientHeight);
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  g.font = '10.5px ' + cssVar('--mono');
+  return { g, W, H };
+}
+function axis(g, x0, y0, w, h, yMax, step, unit) {
+  g.strokeStyle = cssVar('--rule2'); g.fillStyle = cssVar('--dim'); g.lineWidth = 1; g.textAlign = 'right';
+  for (let v = 0; v <= yMax + 1e-9; v += step) { const y = y0 + h - (v / yMax) * h; g.beginPath(); g.moveTo(x0, y); g.lineTo(x0 + w, y); g.stroke(); g.fillText(String(Math.round(v * 10) / 10), x0 - 6, y + 3); }
+  g.textAlign = 'left'; g.fillText(unit, x0, y0 - 6);
+}
+function niceStep(max) { const raw = max / 4; const p = Math.pow(10, Math.floor(Math.log10(raw))); const n = raw / p; return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * p; }
+function drawCharts(R) {
+  { // lambda per window
+    const { g, W, H } = prepCanvas($('chartLam'));
+    const vals = R.stats.map((x) => R.lamOf(x));
+    const yMaxRaw = Math.max(TOY.mean * 1.2, ...vals.filter((v) => v != null).map((v) => v * 1.15), 1);
+    const step = niceStep(yMaxRaw), yMax = Math.ceil(yMaxRaw / step) * step;
+    const x0 = 36, y0 = 20, w = W - x0 - 10, h = H - y0 - 26;
+    axis(g, x0, y0, w, h, yMax, step, 'λ per hour');
+    const Y = (v) => y0 + h - (v / yMax) * h;
+    const n = Math.max(5, vals.length), X = (i) => x0 + (i + 0.5) * (w / n);
+    if (R.lam) {
+      g.fillStyle = 'rgba(143,214,179,0.10)'; g.fillRect(x0, Y(R.lam.mean + R.lam.sd), w, Math.max(1, Y(Math.max(0, R.lam.mean - R.lam.sd)) - Y(R.lam.mean + R.lam.sd)));
+      g.strokeStyle = cssVar('--accent'); g.setLineDash([]); g.beginPath(); g.moveTo(x0, Y(R.lam.mean)); g.lineTo(x0 + w, Y(R.lam.mean)); g.stroke();
+      g.fillStyle = cssVar('--accent'); g.textAlign = 'right'; g.fillText('mean ' + f(R.lam.mean, 1), x0 + w, Y(R.lam.mean) - 5); g.textAlign = 'left';
+    }
+    g.strokeStyle = cssVar('--amber'); g.setLineDash([4, 4]); g.beginPath(); g.moveTo(x0, Y(TOY.mean)); g.lineTo(x0 + w, Y(TOY.mean)); g.stroke(); g.setLineDash([]);
+    g.fillStyle = cssVar('--amber'); g.fillText('toy ' + f(TOY.mean, 1), x0 + 4, Y(TOY.mean) - 5);
+    g.fillStyle = cssVar('--dim'); g.textAlign = 'center';
+    for (let i = 0; i < n; i++) g.fillText(i < vals.length ? 'w' + R.stats[i].w.n : '·', X(i), y0 + h + 15);
+    g.textAlign = 'left';
+    vals.forEach((v, i) => { if (v == null) return; g.fillStyle = cssVar('--accent'); g.beginPath(); g.arc(X(i), Y(v), 5, 0, Math.PI * 2); g.fill(); });
+  }
+  { // lift cycles
+    const { g, W, H } = prepCanvas($('chartLift'));
+    const vals = R.cycles.map((c) => c.total);
+    const yMaxRaw = Math.max(140, ...vals.map((v) => v * 1.15));
+    const step = niceStep(yMaxRaw), yMax = Math.ceil(yMaxRaw / step) * step;
+    const x0 = 36, y0 = 20, w = W - x0 - 10, h = H - y0 - 26;
+    axis(g, x0, y0, w, h, yMax, step, 'seconds per cycle');
+    const Y = (v) => y0 + h - (v / yMax) * h;
+    const n = Math.max(5, vals.length), X = (i) => x0 + (i + 0.5) * (w / n);
+    g.strokeStyle = cssVar('--amber'); g.setLineDash([4, 4]); g.beginPath(); g.moveTo(x0, Y(120)); g.lineTo(x0 + w, Y(120)); g.stroke(); g.setLineDash([]);
+    g.fillStyle = cssVar('--amber'); g.fillText('toy 120 s', x0 + 4, Y(120) - 5);
+    if (R.cyc) { g.strokeStyle = cssVar('--blue'); g.beginPath(); g.moveTo(x0, Y(R.cyc.mean)); g.lineTo(x0 + w, Y(R.cyc.mean)); g.stroke(); g.fillStyle = cssVar('--blue'); g.textAlign = 'right'; g.fillText('mean ' + f(R.cyc.mean, 0) + ' s', x0 + w, Y(R.cyc.mean) - 5); g.textAlign = 'left'; }
+    g.fillStyle = cssVar('--dim'); g.textAlign = 'center';
+    for (let i = 0; i < n; i++) g.fillText(i < vals.length ? String(i + 1) : '·', X(i), y0 + h + 15);
+    g.textAlign = 'left';
+    vals.forEach((v, i) => { g.fillStyle = cssVar('--blue'); g.beginPath(); g.arc(X(i), Y(v), 5, 0, Math.PI * 2); g.fill(); });
+  }
+}
+
+/* ---------- CSV and copy ---------- */
+function buildCsv() {
+  const D = dataset(); const out = ['type,site,window_or_session,item,unit,arrived_or_doors_open,left_or_departs,back,minutes_inside_or_cycle_s,packages,photo'];
+  const q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  for (const [, w] of [...D.windows].sort((a, b) => a[1].start - b[1].start)) for (const e of w.events || [])
+    out.push(['count', q(w.site), w.n, e.k, w.unit, iso(e.a), iso(e.d), '', e.d ? ((e.d - e.a) / MIN).toFixed(3) : '', e.p == null ? '' : e.p, w.photo ? 'yes' : 'no'].join(','));
+  for (const [id, s] of D.lift) (s.cycles || []).forEach((c, i) =>
+    out.push(['lift', q(s.site), id, i + 1, 'cycle', iso(c.s), iso(c.c), iso(c.b), c.b ? ((c.b - c.s) / 1000).toFixed(1) : '', '', s.photo ? 'yes' : 'no'].join(',')));
+  return out.join('\n') + '\n';
+}
+function buildSummary() {
+  const D = dataset(); const R = computeAll(D);
+  const lines = [`UnderTheBlock bench test summary (${example ? 'EXAMPLE DATA' : 'measured'})`, `Site: ${R.cond || '—'} · windows: ${R.stats.length} · lift cycles: ${R.cycles.length}`];
+  if (R.lam) lines.push(`λ = ${f(R.lam.mean, 2)} ± ${f(R.lam.sd, 2)} per hour (range ${f(R.lam.min, 2)}–${f(R.lam.max, 2)}) [measured]`);
+  if (R.W) lines.push(`W = ${f(R.W.mean, 2)} ± ${f(R.W.sd, 2)} min [measured]`);
+  if (R.L) lines.push(`L = ${f(R.L.mean, 2)} ± ${f(R.L.sd, 2)} [measured]`);
+  if (R.cyc) lines.push(`Lift cycle = ${f(R.cyc.mean, 1)} ± ${f(R.cyc.sd, 1)} s → ${f(R.cyc.mean / 60, 2)} min, μ = ${f(3600 / R.cyc.mean, 1)} per hour [measured]`);
+  lines.push(`Toy assumed: 16/hr peak wave (≈${f(TOY.mean, 1)}/hr average), 2.0 min lift cycle (μ = 30/hr)`);
+  return lines.join('\n');
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); $('copyNote').textContent = 'Copied.'; $('copyFallback').hidden = true; }
+  catch (e) { const ta = $('copyFallback'); ta.hidden = false; ta.value = t; ta.focus(); ta.select(); $('copyNote').textContent = 'Copy is blocked here: the text is selected below, copy it from there.'; }
+}
+$('btnCopyCsv').addEventListener('click', () => copyText(buildCsv()));
+$('btnCopySum').addEventListener('click', () => copyText(buildSummary()));
+function refreshCsvButton() { $('btnCsv').hidden = !downloads; }
+$('btnCsv').addEventListener('click', async () => {
+  if (!downloads) return;
+  try { await downloads.save({ filename: example ? 'undertheblock-example.csv' : 'undertheblock-bench-test.csv', data: buildCsv() }); $('copyNote').textContent = 'Saved.'; }
+  catch (e) {
+    if (e && e.code === 'declined') $('copyNote').textContent = 'Not saved.';
+    else if (e && e.code === 'rate_limited') $('copyNote').textContent = 'A save prompt is already open.';
+    else { $('copyNote').textContent = 'Saving files is not available here; use Copy CSV.'; $('btnCsv').hidden = true; }
+  }
+});
+
+/* =========================================================
+   CONTRACT
+   ========================================================= */
+const CF = { cClaim: 'claim', cCannot: 'cannot', cTest: 'test', cPred: 'prediction' };
+let contractTimer = null;
+Object.entries(CF).forEach(([idEl, key]) => {
+  $(idEl).addEventListener('input', () => {
+    clearTimeout(contractTimer);
+    contractTimer = setTimeout(() => {
+      const next = { ...S.contract };
+      Object.entries(CF).forEach(([i2, k2]) => { if (!(k2 === 'prediction' && S.contract.predLockedAt)) next[k2] = $(i2).value; });
+      put('meta/contract', next);
+    }, 700);
+  });
+});
+$('btnLock').addEventListener('click', () => {
+  if (S.contract.predLockedAt) {
+    if (!$('btnLock').dataset.armed) { $('btnLock').dataset.armed = '1'; $('btnLock').textContent = 'Tap again to unlock (clears the timestamp)'; setTimeout(() => { delete $('btnLock').dataset.armed; render(); }, 4000); return; }
+    delete $('btnLock').dataset.armed;
+    put('meta/contract', { ...S.contract, predLockedAt: null });
+    return;
+  }
+  if (!$('cPred').value.trim()) { $('lockNote').textContent = 'Write the prediction first.'; return; }
+  put('meta/contract', { ...S.contract, prediction: $('cPred').value, predLockedAt: Date.now() });
+});
+$('btnLog').addEventListener('click', () => {
+  const change = $('lgChange').value.trim(), meas = $('lgMeas').value.trim(), surp = $('lgSurp').value.trim();
+  if (!change && !meas && !surp) return;
+  put('log/g' + uid(), { t: Date.now(), change, measurement: meas, surprise: surp });
+  $('lgChange').value = $('lgMeas').value = $('lgSurp').value = '';
+});
+function renderContract() {
+  const C = S.contract || {};
+  Object.entries(CF).forEach(([idEl, key]) => { if (document.activeElement !== $(idEl) && $(idEl).value !== (C[key] || '')) $(idEl).value = C[key] || ''; });
+  const locked = !!C.predLockedAt;
+  $('cPred').readOnly = locked;
+  if (!$('btnLock').dataset.armed) $('btnLock').textContent = locked ? 'Unlock prediction' : 'Lock prediction';
+  $('btnLock').classList.toggle('primary', !locked);
+  $('lockNote').textContent = locked ? 'Locked ' + new Date(C.predLockedAt).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' · before any window counted after this time' : '';
+  const items = [...S.log.values()].sort((a, b) => b.t - a.t).map((g) => `<div class="logitem"><div class="when">${new Date(g.t).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>${g.change ? '<div><b style="color:var(--text)">Change:</b> ' + esc(g.change) + '</div>' : ''}${g.measurement ? '<div><b style="color:var(--text)">Measurement:</b> ' + esc(g.measurement) + '</div>' : ''}${g.surprise ? '<div><b style="color:var(--text)">Surprise:</b> ' + esc(g.surprise) + '</div>' : ''}</div>`).join('');
+  const lh = items || '<div class="note">No entries yet.</div>';
+  if ($('logList')._h !== lh) { $('logList').innerHTML = lh; $('logList')._h = lh; }
+}
+
+/* =========================================================
+   PHOTO CLOCK
+   ========================================================= */
+(function buildRuler() { const r = $('pcRuler'); let h = ''; for (let i = 0; i <= 20; i++) h += `<i style="left:${i * 5}%;height:${i % 10 === 0 ? 30 : i % 2 === 0 ? 18 : 10}px"></i>`; r.innerHTML = h; })();
+document.addEventListener('click', (ev) => { if (ev.target.closest('[data-photo]')) { $('photoClock').hidden = false; tick(); } });
+$('photoClock').addEventListener('click', () => { $('photoClock').hidden = true; });
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') $('photoClock').hidden = true; });
+
+/* =========================================================
+   RENDER LOOP
+   ========================================================= */
+function render() {
+  const now = Date.now();
+  if (view === 'count') renderCount(now);
+  else if (view === 'lift') renderLift(now);
+  else if (view === 'results') renderResults();
+  else if (view === 'contract') renderContract();
+}
+function tick() {
+  const now = Date.now();
+  if (!$('photoClock').hidden) {
+    $('pcTime').textContent = hms(now);
+    $('pcDate').textContent = new Date(now).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const a = activeWindow(), l = activeLift();
+    $('pcSite').textContent = view === 'lift' && l ? `Lift · ${l[1].site} · cycle ${l[1].cycles.length || 1}` : a ? `Window ${a[1].n} · ${a[1].site}` : (view === 'lift' ? 'Lift timing' : 'Bench test');
+  }
+  if (view === 'count' && activeWindow()) renderCount(now);
+  if (view === 'lift' && activeLift()) renderLift(now);
+}
+setInterval(tick, 250);
+window.addEventListener('resize', () => { if (view === 'results') renderResults(); });
+
+route();
+initStore();
+})();
+</script>
+
+</body>
+</html>
