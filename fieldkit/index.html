@@ -115,6 +115,15 @@
   .tag.s { color: var(--amber); border-color: rgba(185,122,28,0.45); }
   .big { font-family: var(--mono); font-size: 26px; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.15; }
   .big.toy { color: var(--amber); } .big.meas { color: var(--accent); }
+  .dksteps { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 4px; counter-reset: dk; }
+  .dksteps li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--rule2); font-size: 14px; color: var(--dim); }
+  .dksteps li .n { font-family: var(--mono); font-size: 12px; }
+  .dksteps li .t { font-family: var(--mono); font-size: 13px; color: var(--text); }
+  .dksteps li.done { color: var(--body); }
+  .dksteps li.now { background: #eef7f2; border-color: var(--accent); color: var(--text); font-weight: 600; }
+  .dksteps li .who { font-size: 11px; font-family: var(--mono); color: var(--dim); font-weight: 400; display: block; }
+  .dksteps li.dock .n { color: var(--text); }
+  table td.dk, table th.dk { background: #f3f8f5; }
   .vsrow { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--rule2); }
   .vsrow:last-child { border-bottom: 0; }
   .vsrow .cap { font-size: 12px; color: var(--dim); line-height: 1.4; }
@@ -180,6 +189,7 @@
     <nav class="tabs" aria-label="Field kit">
       <a href="#count" data-view="count">Count</a>
       <a href="#lift" data-view="lift">Lift</a>
+      <a href="#dock" data-view="dock">Dock</a>
       <a href="#results" data-view="results">Results</a>
       <a href="#contract" data-view="contract">Contract</a>
     </nav>
@@ -277,6 +287,32 @@
     </div>
   </section>
 
+  <!-- ================= DOCK ================= -->
+  <section class="view" id="view-dock" hidden>
+    <div class="eyebrow">A3 · Move 3 · Bench test</div>
+    <h1>Time a dock unload</h1>
+    <p>One trial is one delivery, from opening the truck doors to the load scanned in. Tap the big button as each step ends; the kit keeps every split. Steps 1–4 and 7 are dock work a crew still does at the stratum's dock. Steps 5–6, carrying the load to receiving and sorting it, are the work the dock lift and robots take over.</p>
+    <div class="card">
+      <div class="grid2">
+        <div class="field"><label for="dkKind">What is being delivered</label><input type="text" id="dkKind" placeholder="Standard grocery pallet" autocomplete="off"></div>
+        <div class="field"><label for="dkSite">Dock (same name for every trial)</label><input type="text" id="dkSite" placeholder="H-E-B loading dock" autocomplete="off"></div>
+      </div>
+      <label class="row note" style="margin-top:10px"><input type="checkbox" id="dkFits" checked> It would fit a 0.8 × 0.8 m robot cart (untick for forklift freight)</label>
+      <ol class="dksteps" id="dkSteps"></ol>
+      <button class="bigtap" id="btnDk">Doors open<small>start a trial</small></button>
+      <div class="row" style="margin-top:10px">
+        <button class="btn small" id="btnDkUndo">Undo last tap</button>
+        <button class="btn small" data-photo>Clock for photo</button>
+        <button class="btn small warn" id="btnDkDrop">Discard this trial</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h3>Trials</h3><a class="note" href="#results" style="color:var(--accent)">Results →</a></div>
+      <div class="tablewrap" style="margin-top:8px"><table id="dkTable"></table></div>
+      <div class="note" style="margin-top:8px">Trials 1–5 come from your H-E-B field study. Trials you time here are added after them and go into the same results.</div>
+    </div>
+  </section>
+
   <!-- ================= RESULTS ================= -->
   <section class="view" id="view-results" hidden>
     <div class="eyebrow">A3 · Evidence</div>
@@ -287,9 +323,19 @@
       <select id="condSel" aria-label="Site" style="width:auto;max-width:100%"></select>
     </div>
     <div class="banner ex" id="exBanner" hidden>Example data, made up to show what the results look like. It is not saved and is not yours.</div>
-    <div id="resEmpty" class="card" hidden><h2>No windows yet</h2><p>Count your first window on the <a href="#count" style="color:var(--accent)">Count</a> tab and time the elevator on the <a href="#lift" style="color:var(--accent)">Lift</a> tab. Results fill in here as you go. To see the layout first, switch to <b>Example data</b>.</p></div>
+    <div id="resEmpty" class="card" hidden><h2>No arrival windows or lift cycles yet</h2><p>Count your first window on the <a href="#count" style="color:var(--accent)">Count</a> tab and time the elevator on the <a href="#lift" style="color:var(--accent)">Lift</a> tab. Results fill in here as you go. To see the layout first, switch to <b>Example data</b>.</p></div>
 
     <div id="resBody">
+      <div class="card">
+        <h2>Dock unloading <span class="tag m">measured</span></h2>
+        <div class="note">Each bar is one delivery, split into its seven steps. Dark steps are dock work a crew still does in the stratum (open, inspect, position the jack, pull onto the dock, scan); pale steps are what the lift and robots take over.</div>
+        <div class="kpis" id="dkKpis" style="margin-top:12px"></div>
+        <canvas class="chart" id="chartDock" style="height:250px"></canvas>
+        <div class="legend"><span><i style="background:#0f1111"></i>dock work, steps 1–4 and 7</span><span><i style="background:#c9ccc8"></i>carry and sort, steps 5–6</span><span><i style="background:repeating-linear-gradient(45deg,#d1492b 0 2px,transparent 2px 5px)"></i>does not fit a cart</span></div>
+        <div class="tablewrap" style="margin-top:12px"><table id="dkResTable"></table></div>
+        <div class="card inner" style="margin-top:12px" id="dkUse"></div>
+      </div>
+
       <div class="card">
         <h2>Toy vs measured</h2>
         <div class="note">What the toy assumed, what you measured, and where to set the toy's sliders.</div>
@@ -406,7 +452,7 @@
    Shared store (db capability) when available: windows/, lift/, meta/contract, log/.
    Falls back to this browser's storage when the store cannot be reached.
    ========================================================= */
-const S = { windows: new Map(), lift: new Map(), log: new Map(), contract: {} };
+const S = { windows: new Map(), lift: new Map(), dock: new Map(), log: new Map(), contract: {} };
 const dirty = new Map();     // path -> latest local body not yet confirmed
 const writers = new Map();   // path -> { pending, busy }
 let db = null, downloads = null, mode = 'loading', failing = 0;
@@ -421,12 +467,12 @@ function setChip(state, text) {
 }
 function lsLoad() {
   try { const raw = localStorage.getItem(LS_KEY); if (!raw) return; const o = JSON.parse(raw);
-    for (const k of ['windows', 'lift', 'log']) S[k] = new Map(Object.entries(o[k] || {}));
+    for (const k of ['windows', 'lift', 'dock', 'log']) S[k] = new Map(Object.entries(o[k] || {}));
     S.contract = o.contract || {};
   } catch (e) { /* storage blocked: keep in memory */ }
 }
 function lsSave() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ windows: Object.fromEntries(S.windows), lift: Object.fromEntries(S.lift), log: Object.fromEntries(S.log), contract: S.contract })); } catch (e) { /* ignore */ }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ windows: Object.fromEntries(S.windows), lift: Object.fromEntries(S.lift), dock: Object.fromEntries(S.dock), log: Object.fromEntries(S.log), contract: S.contract })); } catch (e) { /* ignore */ }
 }
 function coll(path) { const [c] = path.split('/'); return c; }
 
@@ -496,11 +542,11 @@ async function initStore() {
     render(); return;
   }
   mode = 'db'; setChip('busy', 'loading…');
-  let first = { windows: false, lift: false, log: false, meta: false };
+  let first = { windows: false, lift: false, dock: false, log: false, meta: false };
   const timer = setTimeout(() => { if (Object.values(first).some((v) => !v)) setChip('bad', 'store not answering'); }, 10000);
   const done = (k, snap) => { if (!snap.metadata.fromCache) first[k] = true; if (Object.values(first).every(Boolean)) { clearTimeout(timer); setChip('ok', 'saved'); } };
   const onErr = (e) => { setChip('bad', 'store error'); alertBanner('The shared store stopped answering (' + (e && e.code) + '). Reload the page; counts taken since then are kept in this browser.'); mode = 'local'; lsSave(); };
-  for (const k of ['windows', 'lift', 'log']) {
+  for (const k of ['windows', 'lift', 'dock', 'log']) {
     db.collection(k).onSnapshot((snap) => {
       const m = new Map();
       snap.docs.forEach((d) => m.set(d.id, d.data()));
@@ -568,7 +614,7 @@ function activeLift() {
 /* ---------- routing ---------- */
 function route() {
   const h = (location.hash || '').replace('#', '');
-  view = ['count', 'lift', 'results', 'contract'].includes(h) ? h : 'count';
+  view = ['count', 'lift', 'dock', 'results', 'contract'].includes(h) ? h : 'count';
   document.querySelectorAll('.view').forEach((v) => { v.hidden = v.id !== 'view-' + view; });
   document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('on', a.dataset.view === view));
   render();
@@ -747,6 +793,80 @@ function renderLift(now) {
 }
 
 /* =========================================================
+   DOCK UNLOADING
+   Your H-E-B field study (Google Doc "H-E-B Loading Dock Unloading Trials"), stopwatch laps in seconds,
+   plus any trials timed on the Dock tab. Dock work = steps 1–4 and 7; steps 5–6 are what the stratum automates.
+   ========================================================= */
+const DK_STEPS = ['Open the truck doors', 'Inspect the load and paperwork', 'Position the pallet jack', 'Pull the load onto the dock', 'Carry it to receiving', 'Sort and organize', 'Scan it in'];
+const DK_DOCK = [0, 1, 2, 3, 6];
+const HEB = [
+  { n: 1, kind: 'Standard grocery pallet', laps: [3.27, 8.37, 7.29, 13.95, 9.80, 9.23, 4.71], recorded: 1010.12, fits: true,
+    note: 'The laps add to 56.6 s but the overall time recorded is 16:50.12. The laps are used here; check the stopwatch.' },
+  { n: 2, kind: 'Medium grocery items', laps: [45, 135, 90, 210, 165, 270, 140], fits: true },
+  { n: 3, kind: 'Large supplies and tools', laps: [90, 330, 360, 600, 390, 600, 330], fits: false, note: 'Forklift freight (shelving, appliances) does not fit a cart, so it stays out of the stratum numbers.' },
+  { n: 4, kind: 'Fresh produce', laps: [45, 120, 75, 180, 150, 315, 240], fits: true },
+  { n: 5, kind: 'Refrigerated dairy', laps: [50, 120, 90, 195, 150, 300, 250], fits: true },
+].map((t) => ({ ...t, site: 'H-E-B loading dock', src: 'H-E-B field study' }));
+function dockTrials() {
+  const mine = [...S.dock.entries()].filter(([, t]) => t.done).sort((a, b) => a[1].start - b[1].start).map(([id, t], i) => {
+    const pts = [t.start, ...t.laps];
+    return { id, n: HEB.length + i + 1, kind: t.kind || 'Delivery', site: t.site || 'Unnamed dock', fits: t.fits !== false, laps: t.laps.map((v, k) => (v - pts[k]) / 1000), src: 'timed on this kit', start: t.start, photo: t.photo };
+  });
+  return HEB.concat(mine).map((t) => ({ ...t, dockS: DK_DOCK.reduce((a, k) => a + t.laps[k], 0), totalS: t.laps.reduce((a, b) => a + b, 0) }));
+}
+function dockStats() {
+  const T = dockTrials(); const fit = T.filter((t) => t.fits);
+  const dock = agg(fit.map((t) => t.dockS / 60)); const total = agg(T.map((t) => t.totalS / 60));
+  const crewHr = dock ? 60 / dock.mean : null;
+  const need = crewHr ? Math.ceil(TOY.peak / crewHr) : null;
+  return { T, fit, dock, total, crewHr, need };
+}
+const mmss = (sec) => { const s0 = Math.round(sec); return sec < 60 ? sec.toFixed(1) + ' s' : Math.floor(s0 / 60) + ':' + String(s0 % 60).padStart(2, '0'); };
+function activeDock() { for (const [id, t] of S.dock) if (!t.done) return [id, t]; return null; }
+let dkUndo = [];
+$('btnDk').addEventListener('click', () => {
+  const now = Date.now(); const a = activeDock();
+  if (!a) {
+    const id = 'd' + uid();
+    put('dock/' + id, { kind: $('dkKind').value.trim(), site: $('dkSite').value.trim() || 'Unnamed dock', fits: $('dkFits').checked, start: now, laps: [], done: false, photo: false });
+    dkUndo = ['start'];
+  } else {
+    const t = JSON.parse(JSON.stringify(a[1])); t.laps.push(now); if (t.laps.length >= DK_STEPS.length) t.done = true;
+    put('dock/' + a[0], t); dkUndo.push('lap');
+  }
+  if (navigator.vibrate) try { navigator.vibrate(15); } catch (e) {}
+});
+$('btnDkUndo').addEventListener('click', () => {
+  const a = activeDock(); const u = dkUndo.pop(); if (!a || !u) return;
+  if (u === 'start') { remove('dock/' + a[0]); return; }
+  const t = JSON.parse(JSON.stringify(a[1])); t.laps.pop(); put('dock/' + a[0], t);
+});
+$('btnDkDrop').addEventListener('click', () => {
+  const a = activeDock(); if (!a) return; const b = $('btnDkDrop');
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Tap again to discard'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Discard this trial'; }, 4000); return; }
+  delete b.dataset.armed; b.textContent = 'Discard this trial'; remove('dock/' + a[0]); dkUndo = [];
+});
+['dkKind', 'dkSite'].forEach((idEl) => $(idEl).addEventListener('change', () => { const a = activeDock(); if (!a) return; const t = JSON.parse(JSON.stringify(a[1])); t[idEl === 'dkKind' ? 'kind' : 'site'] = $(idEl).value.trim(); put('dock/' + a[0], t); }));
+$('dkFits').addEventListener('change', () => { const a = activeDock(); if (!a) return; const t = JSON.parse(JSON.stringify(a[1])); t.fits = $('dkFits').checked; put('dock/' + a[0], t); });
+function renderDock(now) {
+  const a = activeDock(); const t = a ? a[1] : null;
+  const k = t ? t.laps.length : -1;           // index of the step under way
+  const pts = t ? [t.start, ...t.laps] : [];
+  $('dkSteps').innerHTML = DK_STEPS.map((nm, i) => {
+    const done = t && i < k, cur = t && i === k;
+    const time = done ? mmss((pts[i + 1] - pts[i]) / 1000) : cur ? dur(now - pts[i]) : '';
+    return `<li class="${done ? 'done' : cur ? 'now' : ''} ${DK_DOCK.includes(i) ? 'dock' : ''}"><span class="n">${i + 1}</span><span>${nm}<span class="who">${DK_DOCK.includes(i) ? 'dock work · stays in the stratum' : 'carry and sort · the robots take this over'}</span></span><span class="t">${time}</span></li>`;
+  }).join('');
+  $('btnDk').innerHTML = !t ? 'Doors open<small>start a trial · the clock starts now</small>' : `Step ${k + 1} done<small>${esc(DK_STEPS[k])} · ${dur(now - pts[k])} · trial ${dur(now - t.start)}</small>`;
+  $('btnDkUndo').disabled = !t; $('btnDkDrop').hidden = !t;
+  if (t) { if (document.activeElement !== $('dkKind')) $('dkKind').value = t.kind || ''; if (document.activeElement !== $('dkSite')) $('dkSite').value = t.site || ''; $('dkFits').checked = t.fits !== false; }
+  const T = dockTrials();
+  const tb = `<tr><th class="l">#</th><th class="l">delivery</th>${DK_STEPS.map((_, i) => `<th class="${DK_DOCK.includes(i) ? 'dk' : ''}">${i + 1}</th>`).join('')}<th class="dk">dock work</th><th>whole unload</th><th class="l">cart?</th></tr>` +
+    T.map((r) => `<tr><td class="l">${r.n}</td><td class="l">${esc(r.kind)}<div class="note" style="font-size:11px">${esc(r.src)}</div></td>${r.laps.map((v, i) => `<td class="${DK_DOCK.includes(i) ? 'dk' : ''}">${mmss(v)}</td>`).join('')}<td class="dk"><b>${mmss(r.dockS)}</b></td><td>${mmss(r.totalS)}</td><td class="l">${r.fits ? 'yes' : '<span class="bad">no</span>'}</td></tr>`).join('');
+  if ($('dkTable')._h !== tb) { $('dkTable').innerHTML = tb; $('dkTable')._h = tb; }
+}
+
+/* =========================================================
    RESULTS
    ========================================================= */
 function exampleData() {
@@ -811,11 +931,12 @@ function renderResults() {
   if ($('condSel')._h !== opts) { $('condSel').innerHTML = opts; $('condSel')._h = opts; }
   $('condSel').hidden = R.conds.size < 2;
   const empty = !R.stats.length && !R.cycles.length;
-  $('resEmpty').hidden = !empty; $('resBody').hidden = empty;
+  $('resEmpty').hidden = !empty; $('resBody').hidden = false;
   $('manageCard').hidden = example;
-  if (empty) return;
+  renderDockResults();
 
   // toy vs measured
+  const DS = dockStats();
   const lamMean = R.lam ? R.lam.mean : null;
   const slSteady = lamMean != null ? Math.round(lamMean) : null;
   const slWave = lamMean != null ? Math.round(lamMean * Math.PI / 2) : null;
@@ -829,11 +950,13 @@ function renderResults() {
     ['Lift cycle', `minutes per full cycle, ${R.cyc ? R.cyc.n : 0} cycles`, `${f(TOY.cycleMin, 2)}`, 'μ = 30 carts/hr', cycMin != null ? `${f(cycMin, 2)}` : '—', mu != null ? `± ${f(R.cyc.sd / 60, 2)} · μ = ${f(mu, 1)} carts/hr` : 'time the lift'],
     ['Load on the lift ρ', 'λ ÷ μ: below 1 the queue clears', `${f(TOY.mean / TOY.mu, 2)}`, 'average, wave mode', rho != null ? f(rho, 2) : '—', rho != null ? (rho >= 1 ? '<span style="color:var(--warn)">queue never clears</span>' : 'queue clears') : 'needs both'],
     ['Time inside W', 'minutes from arrival to leaving', '—', 'toy measures this live', R.W ? f(R.W.mean, 1) : '—', R.W ? `± ${f(R.W.sd, 1)} min` : ''],
+    ['Dock work per delivery', `minutes, steps 1–4 and 7, ${DS.dock ? DS.dock.n : 0} trials that fit a cart`, '0', 'A2 rule: unloading is instant', DS.dock ? f(DS.dock.mean, 1) : '—', DS.dock ? `± ${f(DS.dock.sd, 1)} · one crew ≈ ${f(DS.crewHr, 1)} carts/hr` : 'time an unload'],
   ];
   let html = `<div class="vsrow" style="padding-top:4px"><div></div><div class="cap">toy <span class="tag a">assumed</span></div><div class="cap">you <span class="tag m">measured</span></div></div>` +
     vs.map((r) => `<div class="vsrow"><div><div class="what">${r[0]}</div><div class="cap">${r[1]}</div></div><div><div class="big toy">${r[2]}</div><div class="cap">${r[3]}</div></div><div><div class="big meas">${r[4]}</div><div class="cap">${r[5]}</div></div></div>`).join('');
   html += `<div class="card inner" style="margin-top:12px"><h3>Set the toy to your numbers</h3><div class="note" style="font-size:13.5px;color:var(--body)">` +
     (lamMean != null ? `Steady mode: arrivals slider <b class="mono" style="color:var(--accent)">${slSteady}/hr</b>${below8(slSteady)}. Morning-wave mode: peak <b class="mono" style="color:var(--accent)">${slWave}/hr</b>${below8(slWave)} (the wave's average is 2/π of its peak). ` : 'Count at least one window to get an arrivals setting. ') +
+    (DS.dock ? `Tracker: set unloading to <b class="mono" style="color:var(--accent)">measured</b> with <b class="mono" style="color:var(--accent)">${DS.need} crews</b> for a ${TOY.peak}/hr peak. ` : '') +
     (cycMin != null ? `Lift cycle slider <b class="mono" style="color:var(--accent)">${f(Math.min(4, Math.max(0.5, cycMin)), 1)} min</b>${cycMin < 0.5 || cycMin > 4 ? ' <span class="tag s">outside the slider\'s 0.5–4 range</span>' : ''}.` : 'Time the lift to get a lift-cycle setting.') +
     `</div></div>`;
   if ($('vsRows')._h !== html) { $('vsRows').innerHTML = html; $('vsRows')._h = html; }
@@ -857,6 +980,7 @@ function renderResults() {
   const checks = [
     [nW >= 5, `<b>At least five repeats per condition.</b> ${nW} of 5 windows at ${esc(R.cond || 'this site')}${nC ? ` · ${nC} of 5 lift cycles` : ''}.`],
     [nC >= 5, `<b>Five repeats of the lift cycle.</b> ${nC} timed.`],
+    [DS.T.length >= 5, `<b>Five repeats of the dock unload.</b> ${DS.T.length} timed (${DS.fit.length} fit a cart).`],
     [photosOk, `<b>A ruler or a clock in every photo.</b> ${R.stats.filter((x) => x.w.photo).length} of ${nW} windows marked. Use <i>Clock for photo</i> on any tab.`],
     [nW > 0 || nC > 0, `<b>Raw numbers in a table, not only a chart.</b> Below, and in the CSV.`],
     [!!(C.wrong && C.wrong.trim().length > 15), `<b>One sentence on what could have gone wrong.</b> ${C.wrong && C.wrong.trim() ? 'Written.' : 'Not yet.'}`],
@@ -880,11 +1004,53 @@ function renderResults() {
   // manage
   if (!example) {
     const items = [...S.windows.entries()].sort((a, b) => b[1].start - a[1].start).map(([id, w]) => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--rule2);padding:8px 0"><span class="mono" style="font-size:12.5px">Window ${w.n} · ${esc(w.site)} · ${new Date(w.start).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${(w.events || []).length} arrivals${w.end ? '' : ' · running'}</span><button class="btn small warn" data-del="windows/${id}">Delete</button></div>`)
+      .concat([...S.dock.entries()].sort((a, b) => b[1].start - a[1].start).map(([id, t]) => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--rule2);padding:8px 0"><span class="mono" style="font-size:12.5px">Unload · ${esc(t.kind || 'Delivery')} · ${new Date(t.start).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${t.laps.length} of 7 steps</span><button class="btn small warn" data-del="dock/${id}">Delete</button></div>`))
       .concat([...S.lift.entries()].sort((a, b) => b[1].start - a[1].start).map(([id, s]) => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--rule2);padding:8px 0"><span class="mono" style="font-size:12.5px">Lift · ${esc(s.site)} · ${new Date(s.start).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${liftCycles(s).length} cycles</span><button class="btn small warn" data-del="lift/${id}">Delete</button></div>`)).join('');
     const mh = items || '<div class="note">Nothing recorded yet.</div>';
     if ($('manageList')._h !== mh) { $('manageList').innerHTML = mh; $('manageList')._h = mh; }
   }
   drawCharts(R);
+}
+function renderDockResults() {
+  const D = dockStats();
+  const k = `<div class="kpi"><div class="v">${D.T.length}</div><div class="l">unloads timed · ${D.fit.length} fit a cart</div></div>` +
+    `<div class="kpi"><div class="v">${D.dock ? f(D.dock.mean, 1) : '—'}</div><div class="l">min of dock work per delivery · ${D.dock ? mmss(D.dock.min * 60) + '–' + mmss(D.dock.max * 60) : ''}</div></div>` +
+    `<div class="kpi"><div class="v">${D.crewHr ? f(D.crewHr, 1) : '—'}</div><div class="l">deliveries per hour, one crew (lift: 30)</div></div>` +
+    `<div class="kpi"><div class="v">${D.need || '—'}</div><div class="l">crews to keep up with the toy's ${TOY.peak}/hr peak</div></div>`;
+  if ($('dkKpis')._h !== k) { $('dkKpis').innerHTML = k; $('dkKpis')._h = k; }
+  const tb = `<tr><th class="l">#</th><th class="l">delivery</th><th class="dk">dock work</th><th>carry + sort</th><th>whole unload</th><th class="l">cart?</th><th class="l">note</th></tr>` +
+    D.T.map((r) => `<tr><td class="l">${r.n}</td><td class="l">${esc(r.kind)}</td><td class="dk"><b>${mmss(r.dockS)}</b></td><td>${mmss(r.laps[4] + r.laps[5])}</td><td>${mmss(r.totalS)}</td><td class="l">${r.fits ? 'yes' : '<span class="bad">no</span>'}</td><td class="l" style="white-space:normal;min-width:220px;color:var(--dim);font-size:12px">${esc(r.note || r.src)}</td></tr>`).join('') +
+    (D.dock ? `<tr><td class="l" colspan="2" style="color:var(--text)">mean ± sd, fits a cart</td><td class="dk">${f(D.dock.mean, 1)} ± ${f(D.dock.sd, 1)} min</td><td colspan="4"></td></tr>` : '');
+  if ($('dkResTable')._h !== tb) { $('dkResTable').innerHTML = tb; $('dkResTable')._h = tb; }
+  const rho = D.crewHr ? TOY.peak / D.crewHr : null;
+  const use = `<h3>What it changes in the toy</h3><div class="note" style="font-size:13.5px;color:var(--body);margin-top:6px">The A2 toy treated unloading as instant, so the dock lift (30 carts/hr) was the bottleneck. Measured, one crew needs about <b>${D.dock ? f(D.dock.mean, 1) : '—'} min</b> of dock work per delivery, so it handles about <b>${D.crewHr ? f(D.crewHr, 1) : '—'}</b> deliveries an hour. At the toy's ${TOY.peak}/hr peak one crew is loaded to ρ = ${rho ? f(rho, 2) : '—'}${rho && rho >= 1 ? ' and the curb queue never clears' : ''}. <b>The crew, not the lift, becomes the narrowest step</b> until about 4–5 crews work at once. The tracker now runs with this measurement: set <i>unloading: measured</i> and choose the number of crews. One delivery is counted as one cart <span class="tag a">assumed</span>.</div>`;
+  if ($('dkUse')._h !== use) { $('dkUse').innerHTML = use; $('dkUse')._h = use; }
+  drawDock(D);
+}
+function drawDock(D) {
+  const { g, W, H } = prepCanvas($('chartDock'));
+  const rows = D.T, x0 = Math.min(150, W * 0.3), y0 = 22, h = H - y0 - 26, rh = h / Math.max(5, rows.length), w = W - x0 - 14;
+  const mxRaw = Math.max(1, ...rows.map((r) => r.totalS / 60)) * 1.05, step = niceStep(mxRaw), mx = Math.ceil(mxRaw / step) * step;
+  const X = (m) => x0 + (m / mx) * w;
+  g.strokeStyle = cssVar('--rule2'); g.fillStyle = cssVar('--dim'); g.textAlign = 'center';
+  for (let v = 0; v <= mx + 1e-9; v += step) { g.beginPath(); g.moveTo(X(v), y0 - 4); g.lineTo(X(v), y0 + h); g.stroke(); g.fillText(String(v), X(v), y0 + h + 15); }
+  g.textAlign = 'right'; g.fillText('minutes →', W - 4, y0 - 8); g.textAlign = 'left';
+  rows.forEach((r, i) => {
+    const y = y0 + i * rh + rh * 0.18, bh = rh * 0.64; let t = 0;
+    g.fillStyle = cssVar('--text'); g.font = '600 12px ' + cssVar('--sans'); g.fillText('Trial ' + r.n, 4, y + bh / 2 - 1);
+    g.fillStyle = cssVar('--dim'); g.font = '10.5px ' + cssVar('--mono'); let kd = r.kind; while (kd.length > 4 && g.measureText(kd).width > x0 - 10) kd = kd.slice(0, -2).trimEnd() + '…'; if (kd !== r.kind && !kd.endsWith('…')) kd += '…'; g.fillText(kd, 4, y + bh / 2 + 12);
+    r.laps.forEach((v, k) => {
+      const m = v / 60, xa = X(t), xb = X(t + m);
+      g.fillStyle = DK_DOCK.includes(k) ? (r.fits ? '#0f1111' : '#6b6f6e') : '#c9ccc8';
+      g.fillRect(xa, y, Math.max(0.6, xb - xa - 0.6), bh); t += m;
+    });
+    if (!r.fits) { g.save(); g.beginPath(); g.rect(X(0), y, X(t) - X(0), bh); g.clip(); g.strokeStyle = 'rgba(209,73,43,0.75)'; g.lineWidth = 1.2; for (let xx = X(0) - bh; xx < X(t); xx += 6) { g.beginPath(); g.moveTo(xx, y + bh); g.lineTo(xx + bh, y); g.stroke(); } g.restore(); }
+    g.fillStyle = cssVar('--text'); g.font = '11px ' + cssVar('--mono');
+    const lbl = mmss(r.totalS) + (r.fits ? ' · dock ' + mmss(r.dockS) : '');
+    const lw = g.measureText(lbl).width;
+    if (X(t) + 6 + lw < W) g.fillText(lbl, X(t) + 6, y + bh / 2 + 4); else { g.textAlign = 'right'; g.fillStyle = '#ffffff'; g.fillText(lbl, X(t) - 6, y + bh / 2 + 4); g.textAlign = 'left'; }
+  });
+  g.font = '10.5px ' + cssVar('--mono');
 }
 $('manageList').addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-del]'); if (!b) return;
@@ -957,6 +1123,8 @@ function buildCsv() {
     out.push(['count', q(w.site), w.n, e.k, w.unit, iso(e.a), iso(e.d), '', e.d ? ((e.d - e.a) / MIN).toFixed(3) : '', e.p == null ? '' : e.p, w.photo ? 'yes' : 'no'].join(','));
   for (const [id, s] of D.lift) (s.cycles || []).forEach((c, i) =>
     out.push(['lift', q(s.site), id, i + 1, 'cycle', iso(c.s), iso(c.c), iso(c.b), c.b ? ((c.b - c.s) / 1000).toFixed(1) : '', '', s.photo ? 'yes' : 'no'].join(',')));
+  for (const t of dockTrials()) t.laps.forEach((v, i) =>
+    out.push(['dock', q(t.site), 'trial ' + t.n, i + 1, q(DK_STEPS[i] + (DK_DOCK.includes(i) ? ' [dock work]' : ' [carry/sort]')), '', '', '', v.toFixed(2), q(t.kind + (t.fits ? '' : ' (does not fit a cart)')), t.src === 'H-E-B field study' ? 'see field study' : (t.photo ? 'yes' : 'no')].join(',')));
   return out.join('\n') + '\n';
 }
 function buildSummary() {
@@ -966,6 +1134,9 @@ function buildSummary() {
   if (R.W) lines.push(`W = ${f(R.W.mean, 2)} ± ${f(R.W.sd, 2)} min [measured]`);
   if (R.L) lines.push(`L = ${f(R.L.mean, 2)} ± ${f(R.L.sd, 2)} [measured]`);
   if (R.cyc) lines.push(`Lift cycle = ${f(R.cyc.mean, 1)} ± ${f(R.cyc.sd, 1)} s → ${f(R.cyc.mean / 60, 2)} min, μ = ${f(3600 / R.cyc.mean, 1)} per hour [measured]`);
+  const DS = dockStats();
+  if (DS.dock) lines.push(`Dock work per delivery (steps 1–4 + 7, ${DS.dock.n} trials that fit a cart) = ${f(DS.dock.mean, 1)} ± ${f(DS.dock.sd, 1)} min (range ${f(DS.dock.min, 1)}–${f(DS.dock.max, 1)}) → one crew ≈ ${f(DS.crewHr, 1)} deliveries/hr; ${DS.need} crews for a ${TOY.peak}/hr peak [measured]`);
+  if (DS.total) lines.push(`Whole unload, all ${DS.total.n} trials = ${f(DS.total.mean, 1)} min mean (range ${f(DS.total.min, 1)}–${f(DS.total.max, 1)}) [measured]`);
   lines.push(`Toy assumed: 16/hr peak wave (≈${f(TOY.mean, 1)}/hr average), 2.0 min lift cycle (μ = 30/hr)`);
   return lines.join('\n');
 }
@@ -1045,6 +1216,7 @@ function render() {
   const now = Date.now();
   if (view === 'count') renderCount(now);
   else if (view === 'lift') renderLift(now);
+  else if (view === 'dock') renderDock(now);
   else if (view === 'results') renderResults();
   else if (view === 'contract') renderContract();
 }
@@ -1058,6 +1230,7 @@ function tick() {
   }
   if (view === 'count' && activeWindow()) renderCount(now);
   if (view === 'lift' && activeLift()) renderLift(now);
+  if (view === 'dock' && activeDock()) renderDock(now);
 }
 setInterval(tick, 250);
 window.addEventListener('resize', () => { if (view === 'results') renderResults(); });

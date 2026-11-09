@@ -274,7 +274,7 @@ function stepLogical(s, dtMinutes, policy, arrivalRate, cycleTime, passingBayCou
   const ratePerMin = waveRate(s.simMinutes, arrivalRate) / 60;
   const pushArrival = () => {
     const cid = s.nextCartId++;
-    s.queue.push(cid);
+    enterDock(s, cid, opts);
     s.dest.set(cid, policy.buildingRouting[s.routePtr % policy.buildingRouting.length]); s.routePtr++;
     s.ll.arrT.set(cid, s.simMinutes); s.ll.arrivals++; s.ll.inSystem++;
     if (opts && opts.onEvent) opts.onEvent('dock', cid, { b: s.dest.get(cid) });
@@ -286,9 +286,31 @@ function stepLogical(s, dtMinutes, policy, arrivalRate, cycleTime, passingBayCou
     s.arrivalAcc += ratePerMin * dtMinutes;
     while (s.arrivalAcc >= 1) { s.arrivalAcc -= 1; pushArrival(); }
   }
+  // Measured dock handling (H-E-B unloading trials): a crew opens the truck, inspects, pulls the load onto the dock
+  // and scans it before it can join the line for the lift. Off unless opts.unload is given (the A2 rules: instant).
+  const U = opts && opts.unload;
+  if (U) {
+    if (!s.unloadQ) s.unloadQ = [];
+    if (!s.crews) s.crews = [];
+    while (s.crews.length < U.crews) s.crews.push(null);
+    for (let c = 0; c < s.crews.length; c++) {
+      const k = s.crews[c];
+      if (k) {
+        k.left -= dtMinutes;
+        if (k.left <= 0) { s.crews[c] = null; s.queue.push(k.cid); if (opts.onEvent) opts.onEvent('unloaded', k.cid, { crew: c }); }
+      }
+    }
+    for (let c = 0; c < U.crews && c < s.crews.length; c++) {
+      if (!s.crews[c] && s.unloadQ.length) {
+        const cid = s.unloadQ.shift(), m = U.sample(opts.rng || null);
+        s.crews[c] = { cid, left: m, total: m };
+        if (opts.onEvent) opts.onEvent('unload', cid, { crew: c, min: m });
+      }
+    }
+  }
   if (s.queue.length > s.ll.maxQueue) s.ll.maxQueue = s.queue.length;
 
-  const curbCount = Math.max(0, s.queue.length - SETTINGS.DOCK_CAPACITY);
+  const curbCount = Math.max(0, s.queue.length - SETTINGS.DOCK_CAPACITY) + (s.unloadQ ? s.unloadQ.length : 0);
   s.curbMinutes += curbCount * dtMinutes;
   if (curbCount > 0 && !s.curbEverOccurred) { s.curbEverOccurred = true; s.curbFailureMinute = s.simMinutes; }
 
@@ -349,10 +371,15 @@ function stepLogical(s, dtMinutes, policy, arrivalRate, cycleTime, passingBayCou
   if (inbound > s.maxInTrench) s.maxInTrench = inbound;
 }
 
+/* a delivery reaching the dock: straight into the line for the lift, or first to a crew when unloading is on */
+function enterDock(s, cid, opts) {
+  if (opts && opts.unload) { if (!s.unloadQ) s.unloadQ = []; s.unloadQ.push(cid); }
+  else s.queue.push(cid);
+}
 /* a package someone ordered: joins the dock queue now, bound for one tenant */
 function injectArrival(s, dest, opts) {
   const cid = s.nextCartId++;
-  s.queue.push(cid); s.dest.set(cid, dest);
+  enterDock(s, cid, opts); s.dest.set(cid, dest);
   s.ll.arrT.set(cid, s.simMinutes); s.ll.arrivals++; s.ll.inSystem++;
   if (opts && opts.onEvent) opts.onEvent('dock', cid, { b: dest, ordered: true });
   return cid;

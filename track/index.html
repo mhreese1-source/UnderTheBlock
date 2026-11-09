@@ -229,6 +229,9 @@
           <label class="note">peak <input type="number" id="inRate" min="1" max="80" step="1" value="16" aria-label="Arrivals per hour"> /hr</label>
           <label class="note"><input type="checkbox" id="chkCtrl" checked> traffic controller</label>
           <label class="note"><input type="checkbox" id="chkMail" checked> outgoing mail</label>
+          <span class="sep"></span>
+          <label class="note">unloading <select id="selUnload" aria-label="Dock unloading"><option value="m" selected>measured (H-E-B)</option><option value="0">instant (A2 rule)</option></select></label>
+          <label class="note">crews <input type="number" id="inCrews" min="1" max="5" step="1" value="3" aria-label="Dock crews"></label>
           <button class="btn small" id="btnReset">New day</button>
         </div>
       </div>
@@ -323,10 +326,11 @@
     <div class="card"><h2>1 · The journey of one package</h2><div class="note">Left to right: what happens, how long it takes, and how many per hour each step can handle. The narrowest step sets the pace for everything.</div><div class="chartbox" id="flowSvg"></div></div>
     <div class="card"><h2>2 · How much per day</h2><div class="note">Carts delivered in a 16-hour operating day, for each way of running the lane. The solid bar is what runs without carts spilling onto the curb; the pale extension is the most it can carry before the dock queue grows without end.</div><div class="chartbox" id="daySvg"></div>
       <div class="row" style="margin-top:10px"><button class="btn small" id="btnRecalc">Recompute for the map's current settings</button><span class="note" id="recalcNote"></span></div></div>
-    <div class="card"><h2>3 · Intermediate scales of operation</h2><div class="note">From one building to the full block and beyond: carts per day at each step up, and what each step needs.</div><div class="chartbox" id="scaleSvg"></div></div>
+    <div class="card"><h2>3 · What the H-E-B trials changed</h2><div class="note">Carts per 16-hour day once each delivery has to be unloaded and scanned by a crew, as timed at the H-E-B dock. Controller and 10 bays on, as designed. The range runs from leaving out trial 1's 38-second pallet to keeping it in.</div><div class="chartbox" id="crewSvg"></div><div class="note" id="crewNote" style="margin-top:8px"></div></div>
+    <div class="card"><h2>4 · Intermediate scales of operation</h2><div class="note">From one building to the full block and beyond: carts per day at each step up, and what each step needs.</div><div class="chartbox" id="scaleSvg"></div></div>
     <div class="grid2" style="margin-top:0">
-      <div class="card"><h2>4 · Can it run through floor plenums?</h2><div class="note">Heights drawn to scale. A plenum is the void under a raised floor.</div><div class="chartbox" id="plenumSvg"></div></div>
-      <div class="card"><h2>5 · Can it swarm?</h2><div class="note">How many robots can be in the lane at once, and whether they jam.</div><div class="chartbox" id="swarmSvg"></div></div>
+      <div class="card"><h2>5 · Can it run through floor plenums?</h2><div class="note">Heights drawn to scale. A plenum is the void under a raised floor.</div><div class="chartbox" id="plenumSvg"></div></div>
+      <div class="card"><h2>6 · Can it swarm?</h2><div class="note">How many robots can be in the lane at once, and whether they jam.</div><div class="chartbox" id="swarmSvg"></div></div>
     </div>
     <div class="card"><h2>How we know, and what we don't</h2><div id="howKnow"></div></div>
   </div>
@@ -610,7 +614,7 @@ function stepLogical(s, dtMinutes, policy, arrivalRate, cycleTime, passingBayCou
   const ratePerMin = waveRate(s.simMinutes, arrivalRate) / 60;
   const pushArrival = () => {
     const cid = s.nextCartId++;
-    s.queue.push(cid);
+    enterDock(s, cid, opts);
     s.dest.set(cid, policy.buildingRouting[s.routePtr % policy.buildingRouting.length]); s.routePtr++;
     s.ll.arrT.set(cid, s.simMinutes); s.ll.arrivals++; s.ll.inSystem++;
     if (opts && opts.onEvent) opts.onEvent('dock', cid, { b: s.dest.get(cid) });
@@ -622,9 +626,31 @@ function stepLogical(s, dtMinutes, policy, arrivalRate, cycleTime, passingBayCou
     s.arrivalAcc += ratePerMin * dtMinutes;
     while (s.arrivalAcc >= 1) { s.arrivalAcc -= 1; pushArrival(); }
   }
+  // Measured dock handling (H-E-B unloading trials): a crew opens the truck, inspects, pulls the load onto the dock
+  // and scans it before it can join the line for the lift. Off unless opts.unload is given (the A2 rules: instant).
+  const U = opts && opts.unload;
+  if (U) {
+    if (!s.unloadQ) s.unloadQ = [];
+    if (!s.crews) s.crews = [];
+    while (s.crews.length < U.crews) s.crews.push(null);
+    for (let c = 0; c < s.crews.length; c++) {
+      const k = s.crews[c];
+      if (k) {
+        k.left -= dtMinutes;
+        if (k.left <= 0) { s.crews[c] = null; s.queue.push(k.cid); if (opts.onEvent) opts.onEvent('unloaded', k.cid, { crew: c }); }
+      }
+    }
+    for (let c = 0; c < U.crews && c < s.crews.length; c++) {
+      if (!s.crews[c] && s.unloadQ.length) {
+        const cid = s.unloadQ.shift(), m = U.sample(opts.rng || null);
+        s.crews[c] = { cid, left: m, total: m };
+        if (opts.onEvent) opts.onEvent('unload', cid, { crew: c, min: m });
+      }
+    }
+  }
   if (s.queue.length > s.ll.maxQueue) s.ll.maxQueue = s.queue.length;
 
-  const curbCount = Math.max(0, s.queue.length - SETTINGS.DOCK_CAPACITY);
+  const curbCount = Math.max(0, s.queue.length - SETTINGS.DOCK_CAPACITY) + (s.unloadQ ? s.unloadQ.length : 0);
   s.curbMinutes += curbCount * dtMinutes;
   if (curbCount > 0 && !s.curbEverOccurred) { s.curbEverOccurred = true; s.curbFailureMinute = s.simMinutes; }
 
@@ -685,10 +711,15 @@ function stepLogical(s, dtMinutes, policy, arrivalRate, cycleTime, passingBayCou
   if (inbound > s.maxInTrench) s.maxInTrench = inbound;
 }
 
+/* a delivery reaching the dock: straight into the line for the lift, or first to a crew when unloading is on */
+function enterDock(s, cid, opts) {
+  if (opts && opts.unload) { if (!s.unloadQ) s.unloadQ = []; s.unloadQ.push(cid); }
+  else s.queue.push(cid);
+}
 /* a package someone ordered: joins the dock queue now, bound for one tenant */
 function injectArrival(s, dest, opts) {
   const cid = s.nextCartId++;
-  s.queue.push(cid); s.dest.set(cid, dest);
+  enterDock(s, cid, opts); s.dest.set(cid, dest);
   s.ll.arrT.set(cid, s.simMinutes); s.ll.arrivals++; s.ll.inSystem++;
   if (opts && opts.onEvent) opts.onEvent('dock', cid, { b: dest, ordered: true });
   return cid;
@@ -712,6 +743,26 @@ const f = (v, d = 1) => (v == null || !isFinite(v)) ? '—' : v.toFixed(d);
 const q = (a, p) => { if (!a.length) return null; const b = a.slice().sort((x, y) => x - y); const i = p * (b.length - 1); const lo = Math.floor(i), hi = Math.ceil(i); return b[lo] + (b[hi] - b[lo]) * (i - lo); };
 
 /* ============================================================
+   MEASURED: H-E-B loading-dock unloading trials (bench test, Move 3)
+   Dock handling = laps 1–4 + 7: open the doors, inspect, position the jack, pull the load onto the dock, scan it.
+   Laps 5–6 (carry to receiving, sort) are the work the dock lift and robots take over in the stratum.
+   Trial 3 (forklift, shelving and appliances) is left out: that freight does not fit a 0.8 × 0.8 m cart.
+   ============================================================ */
+const HEB = [
+  { n: 1, kind: 'Standard grocery pallet', dock: 37.59 / 60, total: 56.62 / 60, use: true },
+  { n: 2, kind: 'Medium grocery items', dock: 620 / 60, total: 1055 / 60, use: true },
+  { n: 3, kind: 'Large supplies and tools', dock: 1710 / 60, total: 2700 / 60, use: false },
+  { n: 4, kind: 'Fresh produce', dock: 660 / 60, total: 1125 / 60, use: true },
+  { n: 5, kind: 'Refrigerated dairy', dock: 705 / 60, total: 1155 / 60, use: true },
+];
+const UNLOAD = HEB.filter((t) => t.use).map((t) => t.dock);
+const UNLOAD_MEAN = UNLOAD.reduce((a, b) => a + b, 0) / UNLOAD.length;
+function redrawUnloads(s, rng) {      // a future redraws each unload in progress from the trials that last longer than it has so far
+  for (const k of s.crews) { if (!k) continue; const el = k.total - k.left; const pool = UNLOAD.filter((v) => v > el); const tot = pool.length ? pool[Math.floor(rng() * pool.length)] : el + 0.05; k.total = tot; k.left = tot - el; }
+}
+const unloadSample = (rng) => rng ? UNLOAD[Math.floor(rng() * UNLOAD.length)] : UNLOAD_MEAN;   // resample the four trials
+
+/* ============================================================
    PARAMETERS (tagged)
    ============================================================ */
 const P = {
@@ -722,13 +773,15 @@ const P = {
   linger: { v: SETTINGS.LINGER_PROBABILITY * 100, tag: 'assumed', what: 'Carts that pause in a bay (1–2.5 min)', unit: '%', src: 'chosen in the A2 chat' },
   van: { v: '3–8', tag: 'assumed', what: 'Van trip, order to dock', unit: 'min', src: 'placeholder for the street leg' },
   perCart: { v: '10–30', tag: 'assumed', what: 'Parcels per cart (0.8 × 0.8 × 1.05 m)', unit: 'parcels', src: 'estimate from cart volume' },
+  unload: { v: '0.6–11.8', tag: 'measured', what: 'Dock handling per delivery: open, inspect, pull onto the dock, scan', unit: 'min', src: 'H-E-B trials 1, 2, 4, 5 (38 s, 10.3, 11.0, 11.8 min) · laps 1–4 + 7 · mean ' + UNLOAD_MEAN.toFixed(1) },
+  crews: { v: 3, tag: 'assumed', what: 'Dock crews unloading at once (one delivery = one cart)', unit: 'crews', src: '3 is the fewest that keep up with 16 carts/hr' },
 };
 
 /* ============================================================
    LIVE STATE
    ============================================================ */
 let sim, rngLive, seedDay = 1, running = true, speed = 1;
-let mode = 'wave', ctrl = true, mailOn = true;
+let mode = 'wave', ctrl = true, mailOn = true, unloadOn = true;
 let bays = new Set(PASSING_PRIORITY.slice(0, 10));       // passing-bay rows, editable on the map
 const policy = { buildingRouting: [0, 1, 2, 3] };
 let recs = new Map();       // cartId -> record
@@ -740,8 +793,9 @@ const disp = new Map();     // display positions for animation
 
 function bayOrder() { return [...bays].sort((a, b) => b - a); }
 function bayLabel(cell) { const o = bayOrder(); const i = o.indexOf(cell); return i < 0 ? null : 'P' + (i + 1); }
+function unloadOpt() { return unloadOn ? { crews: P.crews.v, sample: unloadSample } : null; }
 function simOpts(extra) {
-  return Object.assign({ rng: rngLive, recover: true, order: bayOrder(), noOutgoing: !mailOn, onEvent: onEvent }, extra || {});
+  return Object.assign({ rng: rngLive, recover: true, order: bayOrder(), noOutgoing: !mailOn, onEvent: onEvent, unload: unloadOpt() }, extra || {});
 }
 
 function newDay() {
@@ -763,10 +817,12 @@ function onEvent(type, cid, info) {
     if (!r) { r = { cid, dest: info.b, ordered: false, label: 'UTB-' + String(1000 + cid) }; recs.set(cid, r); }
     r.tDock = t;
     if (r.ordered || cid % 3 === 0) r.wantBand = true;      // ETA band for ordered packages and every 3rd other (3 and 4 tenants share no factor, so all tenants get sampled)
-    if (r.ordered) notify(r, `<b>Arrived at the loading dock.</b> ${esc(r.label)} is dwelling on the dock, waiting for the lift.`, 'good', 'Arrived');
+    if (r.ordered) notify(r, unloadOn ? `<b>Arrived at the loading dock.</b> ${esc(r.label)} is dwelling on the dock: a crew unloads and scans it, then it waits for the lift.` : `<b>Arrived at the loading dock.</b> ${esc(r.label)} is dwelling on the dock, waiting for the lift.`, 'good', 'Arrived');
     return;
   }
   if (!r) return;
+  if (type === 'unload') { r.tUnload = t; r.unloadMin = info.min; r.crew = info.crew; if (r === trackedRec()) notify(r, `<b>Unloading.</b> Crew ${info.crew + 1} is pulling it onto the dock and scanning it: about ${Math.max(1, Math.round(info.min))} min, as in the H-E-B trials.`, '', 'Unloading'); }
+  if (type === 'unloaded') { r.tReady = t; }
   if (type === 'lift') { r.tLift = t; if (r === recs.get(tracked)) notify(r, `<b>On the dock lift.</b> Lowering into the stratum.`, '', 'Moving'); }
   if (type === 'down') { r.tDown = t; }
   if (type === 'trench') { r.tTrench = t; if (r === recs.get(tracked)) notify(r, `<b>In the stratum.</b> Row 16, heading west to Tenant ${TEN[r.dest]}'s lift at row ${SETTINGS.BUILDING_CELLS[r.dest]}.`, '', 'Stratum'); }
@@ -827,11 +883,12 @@ function forecast(rec, n) {
     const s = k === n - 1 ? base : structuredClone(base);
     const rng = mulberry32(((t0 * 1000) | 0) + k * 7919 + (rec.oid || rec.cid || 0) * 104729 + 13);
     let target = rec.cid, done = null, injectAt = null;
+    if (s.crews) redrawUnloads(s, rng);   // the dock cannot know how long an unload will take, so each future redraws it
     if (vanLeft) { const el = t0 - rec.tOrder; const lo = Math.max(3, el), hi = Math.max(lo + 0.01, 8); injectAt = rec.tOrder + lo + rng() * (hi - lo); }
-    const opts = { rng, recover: true, order: bayOrder(), noOutgoing: !mailOn, onEvent: (type, c) => { if (type === 'delivered' && c === target) done = s.simMinutes; } };
+    const opts = { rng, recover: true, order: bayOrder(), noOutgoing: !mailOn, unload: unloadOpt(), onEvent: (type, c) => { if (type === 'delivered' && c === target) done = s.simMinutes; } };
     let stuck = 0;
     while (s.simMinutes < t0 + HORIZON && done == null) {
-      if (injectAt != null && s.simMinutes >= injectAt) { target = injectArrival(s, rec.dest); injectAt = null; }
+      if (injectAt != null && s.simMinutes >= injectAt) { target = injectArrival(s, rec.dest, { unload: opts.unload }); injectAt = null; }
       if (ctrl) s.untangle = true;
       stepLogical(s, 0.05, policy, P.rate.v, P.cycle.v, bays.size, opts);   // same step as the live run, or the bands drift
       if (s.deadlocked) { stuck += 0.05; if (stuck > 12) break; } else stuck = 0;
@@ -859,7 +916,7 @@ function frame(now) {
           vans.splice(i, 1);
           const cid = sim.nextCartId;
           v.rec.cid = cid; recs.set(cid, v.rec);
-          injectArrival(sim, v.dest, { onEvent });
+          injectArrival(sim, v.dest, { onEvent, unload: unloadOpt() });
           if (tracked === 'o' + v.oid) tracked = cid;
         }
       }
@@ -893,6 +950,8 @@ function locate(r) {
   if (!r) return null;
   if (r.cid == null) { const v = vans.find((x) => x.rec === r); if (v) return { kind: 'van', prog: Math.min(1, (sim.simMinutes - v.t0) / v.dur) }; }
   if (r.tDeliv != null) return { kind: 'done' };
+  if (sim.unloadQ) { const wi = sim.unloadQ.indexOf(r.cid); if (wi >= 0) return { kind: 'berth', pos: wi }; }
+  if (sim.crews) { const c = sim.crews.findIndex((k) => k && k.cid === r.cid); if (c >= 0) return { kind: 'unload', crew: c, left: sim.crews[c].left, total: sim.crews[c].total }; }
   const qi = sim.queue.indexOf(r.cid);
   if (qi >= 0) return { kind: 'dock', pad: qi };
   if (sim.lift.state === 'cycling' && sim.ll.liftCart === r.cid) return { kind: 'lift', prog: sim.lift.timer / P.cycle.v };
@@ -905,6 +964,8 @@ function locText(loc, r) {
   if (!loc) return ['—', ''];
   switch (loc.kind) {
     case 'van': return ['On the street', `Van to the dock · ${Math.round(loc.prog * 100)}% of the way`];
+    case 'berth': return ['Dock berth', `Arrived · waiting for a crew to unload it · ${loc.pos === 0 ? 'next' : loc.pos + ' ahead'}`];
+    case 'unload': return [`Crew ${loc.crew + 1} · unloading`, `Arrived · being pulled onto the dock and scanned · ~${Math.max(1, Math.ceil(loc.left))} min left`];
     case 'dock': return loc.pad < SETTINGS.DOCK_CAPACITY ? [`Dock pad ${loc.pad + 1}`, `Arrived · dwelling on the loading dock · ${loc.pad === 0 ? 'next for the lift' : loc.pad + ' ahead of it'}`] : ['At the curb', `Dock full · ${loc.pad - SETTINGS.DOCK_CAPACITY + 1} past the 5 pads`];
     case 'lift': return ['Dock lift', `Lowering into the stratum · ${Math.round(Math.min(1, loc.prog) * 100)}%`];
     case 'shaft': return ['Foot of the shaft', 'Waiting for row 16 to clear'];
@@ -929,7 +990,7 @@ function renderSheet() {
   const [w, sub] = locText(loc, r);
   $('pingWhere').textContent = w; $('pingSub').textContent = sub;
   const pill = $('pkgPill');
-  const status = r.tDeliv != null ? 'Delivered' : loc && loc.kind === 'van' ? 'On the van' : loc && loc.kind === 'dock' ? 'Arrived · at dock' : loc && loc.kind === 'trench' ? 'In the stratum' : 'Lowering';
+  const status = r.tDeliv != null ? 'Delivered' : loc && loc.kind === 'van' ? 'On the van' : loc && (loc.kind === 'dock' || loc.kind === 'berth' || loc.kind === 'unload') ? 'Arrived · at dock' : loc && loc.kind === 'trench' ? 'In the stratum' : 'Lowering';
   pill.textContent = status; pill.className = 'pill' + (r.tDeliv != null ? ' go' : sim.deadlocked ? ' warn' : '');
   // ETA
   const b = r.band, now = sim.simMinutes;
@@ -959,18 +1020,18 @@ function renderSheet() {
       hon = `<span class="bad"><b>None of ${show.n} simulated futures deliver it:</b> in ${show.jams} the stratum stays jammed.</span> No time is promised. Add a passing bay next to the jam or turn on the traffic controller.`;
     } else hon = `None of ${show.n} simulated futures finish within ${HORIZON} min.`;
     if (show.open) hon += ` ${show.open} were still under way after ${HORIZON} min.`;
-    hon += ` The band covers random arrivals and pauses only; arrival rate and lift speed are <span class="tag a">assumed</span>, so the real spread is wider.`;
+    hon += unloadOn ? ` The band covers random arrivals, pauses and unloading times. Unloading is <span class="tag m">measured</span> (4 H-E-B trials); arrival rate and lift speed are <span class="tag a">assumed</span>, so the real spread is wider.` : ` The band covers random arrivals and pauses only; arrival rate and lift speed are <span class="tag a">assumed</span>, so the real spread is wider.`;
   } else hon = 'The ETA comes from running this same simulation forward 32 times with fresh randomness.';
   $('honest').innerHTML = hon;
   // steps
   const k = loc ? loc.kind : 'done';
   const order = ['ordered', 'van', 'dock', 'lift', 'trench', 'done'];
-  const idx = r.tDeliv != null ? 6 : { van: 1, dock: 2, lift: 3, shaft: 3, trench: 4 }[k] ?? 2;
+  const idx = r.tDeliv != null ? 6 : { van: 1, berth: 2, unload: 2, dock: 2, lift: 3, shaft: 3, trench: 4 }[k] ?? 2;
   const dwell = r.tDock != null ? ((r.tLift != null ? r.tLift : now) - r.tDock) : null;
   const items = [
     ['Ordered', r.ordered ? clk(r.tOrder) : 'not your order', r.ordered ? `to Tenant ${TEN[r.dest]}` : 'followed from the map'],
     ['On the van', r.ordered ? (r.tDock != null ? clk(r.tDock) : '') : '—', r.ordered ? 'street leg, assumed 3–8 min' : 'street leg not tracked'],
-    ['Arrived at the dock', r.tDock != null ? clk(r.tDock) : '', dwell != null ? `dwelling ${f(dwell, 1)} min on the dock` : 'waits on one of 5 pads'],
+    ['Arrived at the dock', r.tDock != null ? clk(r.tDock) : '', (r.tReady != null ? `unloaded and scanned in ${f(r.tReady - r.tUnload, 1)} min · ` : r.tUnload != null ? 'a crew is unloading and scanning it · ' : unloadOn ? 'waiting for a crew to unload it · ' : '') + (dwell != null ? `dwelling ${f(dwell, 1)} min on the dock` : 'then waits on one of 5 pads')],
     ['Lowered by the dock lift', r.tLift != null ? clk(r.tLift) : '', `${f(P.cycle.v, 1)}-min cycle, one cart at a time`],
     ['Across the stratum', r.tTrench != null ? clk(r.tTrench) : '', `row 16 → row ${SETTINGS.BUILDING_CELLS[r.dest]}, ${16 - SETTINGS.BUILDING_CELLS[r.dest]} rows`],
     ['Delivered to Tenant ' + TEN[r.dest], r.tDeliv != null ? clk(r.tDeliv) : (b && b.p50 != null ? '~' + clk(b.p50) : ''), 'at its building\'s lift'],
@@ -987,9 +1048,11 @@ function renderDay() {
   $('clock').textContent = clk(sim.simMinutes);
   $('clockChip').classList.toggle('paused', !running);
   const st = littleStats(sim, P.cycle.v);
-  const curb = Math.max(0, sim.queue.length - SETTINGS.DOCK_CAPACITY);
+  const waitCrew = sim.unloadQ ? sim.unloadQ.length : 0, busy = sim.crews ? sim.crews.filter(Boolean).length : 0;
+  const curb = Math.max(0, sim.queue.length - SETTINGS.DOCK_CAPACITY) + waitCrew;
   const h = `<div class="kpi"><div class="v">${sim.deliveredCount}</div><div class="l">delivered today</div></div>` +
-    `<div class="kpi"><div class="v">${sim.queue.length}<span style="font-size:13px;color:var(--dim)"> / 5</span></div><div class="l">on the dock${curb ? ` · <span class="bad">${curb} at the curb</span>` : ''}</div></div>` +
+    (unloadOn ? `<div class="kpi"><div class="v">${busy}<span style="font-size:13px;color:var(--dim)"> / ${P.crews.v}</span></div><div class="l">crews unloading${waitCrew ? ` · <span class="bad">${waitCrew} trucks waiting</span>` : ''}</div></div>` : '') +
+    `<div class="kpi"><div class="v">${sim.queue.length}<span style="font-size:13px;color:var(--dim)"> / 5</span></div><div class="l">waiting for the lift${curb ? ` · <span class="bad">${curb} at the curb</span>` : ''}</div></div>` +
     `<div class="kpi"><div class="v">${sim.trunkEntities.length}</div><div class="l">robots in the stratum</div></div>` +
     `<div class="kpi"><div class="v">${f(st.W, 1)}</div><div class="l">avg minutes dock → tenant</div></div>` +
     `<div class="kpi"><div class="v ${sim.deadlocked ? 'bad' : ''}">${sim.deadlocked ? 'JAMMED' : 'moving'}</div><div class="l">stratum status · ${bays.size} bays</div></div>`;
@@ -1022,6 +1085,8 @@ function targetPos(L, kind, info) {
   if (kind === 'pad') { const k = info; if (k < SETTINGS.DOCK_CAPACITY) return { x: L.padX, y: L.padY(k) }; return { x: L.streetX + L.streetW * 0.5, y: L.padY(0) + (k - SETTINGS.DOCK_CAPACITY) * 16 }; }
   if (kind === 'lift') return { x: L.liftX, y: L.padY(0) + (L.yT - L.padY(0)) * Math.min(1, info) };
   if (kind === 'shaft') return { x: L.liftX, y: L.yT };
+  if (kind === 'crew') return { x: L.streetX + L.streetW * 0.5, y: L.padY(info) };
+  if (kind === 'berth') return { x: L.streetX + L.streetW * 0.5, y: L.padY(Math.max(1, P.crews.v)) + 6 + info * 16 };
   return { x: 0, y: 0 };
 }
 function ease(key, p) {
@@ -1097,6 +1162,15 @@ function draw() {
   }
   // carts
   for (const d of disp.values()) d.seen = false;
+  if (sim.crews) sim.crews.forEach((k, c) => {
+    if (c < P.crews.v || k) { const p0 = targetPos(L, 'crew', c); g.strokeStyle = '#c9ccc8'; g.beginPath(); g.arc(p0.x, p0.y, 10, 0, Math.PI * 2); g.stroke(); }
+    if (!k) return;
+    const p = ease('c' + k.cid, targetPos(L, 'crew', c));
+    g.strokeStyle = '#2f74a8'; g.lineWidth = 2.5; g.beginPath(); g.arc(p.x, p.y, 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, 1 - k.left / k.total)); g.stroke(); g.lineWidth = 1;
+    dot(g, p.x, p.y, r && r.cid === k.cid ? 'me' : 'in');
+  });
+  if (sim.unloadQ) sim.unloadQ.forEach((cid, k) => { const p = ease('c' + cid, targetPos(L, 'berth', k)); dot(g, p.x, p.y, r && r.cid === cid ? 'me' : 'curb'); });
+  if (unloadOn && L.W >= 600) { g.fillStyle = '#2f74a8'; g.font = '600 9.5px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.textAlign = 'center'; g.fillText('CREWS', L.streetX + L.streetW * 0.5, L.padY(0) - 16); g.textAlign = 'left'; }
   sim.queue.forEach((cid, k) => {
     const p = ease('c' + cid, targetPos(L, 'pad', k));
     dot(g, p.x, p.y, r && r.cid === cid ? 'me' : k >= SETTINGS.DOCK_CAPACITY ? 'curb' : 'in');
@@ -1116,7 +1190,8 @@ function draw() {
     const pts = [];
     if (loc.kind === 'van') { const y = -30 + (L.padY(2) + 30) * loc.prog; pts.push([L.streetX + L.streetW * 0.35, y], [L.padX, L.padY(0)]); }
     else if (me) pts.push([me.x, me.y]);
-    if (loc.kind === 'van' || loc.kind === 'dock') pts.push([L.liftX, L.padY(0)]);
+    if (loc.kind === 'berth' || loc.kind === 'unload') pts.push([L.padX, L.padY(0)]);
+    if (loc.kind === 'van' || loc.kind === 'dock' || loc.kind === 'berth' || loc.kind === 'unload') pts.push([L.liftX, L.padY(0)]);
     if (loc.kind !== 'trench') pts.push([L.liftX, L.yT]);
     pts.push([tx, L.yT], [tx, L.tlY]);
     g.strokeStyle = '#0f1111'; g.lineWidth = 3; g.setLineDash([7, 6]); g.lineDashOffset = -performance.now() / 60;
@@ -1126,12 +1201,14 @@ function draw() {
       const pulse = (performance.now() / 900) % 1;
       g.strokeStyle = `rgba(143,214,179,${0.6 * (1 - pulse)})`; g.lineWidth = 2; g.beginPath(); g.arc(me.x, me.y, 8 + pulse * 16, 0, Math.PI * 2); g.stroke(); g.lineWidth = 1;
       const [w1] = locText(loc, r);
-      drawPin(g, me.x, me.y - 10, w1, loc.kind === 'dock' ? 'Arrived' : 'Your package');
+      drawPin(g, me.x, me.y - 10, w1, loc.kind === 'dock' || loc.kind === 'berth' || loc.kind === 'unload' ? 'Arrived' : 'Your package');
     }
   }
   // curb overflow note
   const curb = sim.queue.length - SETTINGS.DOCK_CAPACITY;
   if (curb > 0) { g.fillStyle = '#d1492b'; g.font = '600 11px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.fillText(curb + ' at the curb', L.streetX + 4, L.padY(0) - 18); }
+  const wq = sim.unloadQ ? sim.unloadQ.length : 0;
+  if (wq > 0) { g.fillStyle = '#d1492b'; g.font = '600 10px ' + getComputedStyle(document.body).getPropertyValue('--mono'); g.textAlign = 'right'; g.fillText(wq + ' waiting for a crew', L.streetX - 4, L.padY(Math.max(1, P.crews.v)) + 10); g.textAlign = 'left'; }
   if (sim.deadlocked) { g.fillStyle = 'rgba(209,73,43,0.95)'; g.font = '700 13px ' + getComputedStyle(document.body).getPropertyValue('--sans'); g.fillText('JAMMED · tap a row next to the jam with “Build bays” on', L.left, yTop - 24); }
 }
 function dot(g, x, y, kind, jam) {
@@ -1179,6 +1256,12 @@ $('selMode').addEventListener('change', () => { mode = $('selMode').value; setAr
 $('inRate').addEventListener('change', () => { const v = Math.max(1, Math.min(80, +$('inRate').value || 16)); P.rate.v = v; $('inRate').value = v; renderParams(); });
 $('chkCtrl').addEventListener('change', () => { ctrl = $('chkCtrl').checked; });
 $('chkMail').addEventListener('change', () => { mailOn = $('chkMail').checked; });
+function releaseUnloading() {   // switching unloading off hands every truck straight to the lift line
+  if (sim.crews) for (let c = 0; c < sim.crews.length; c++) if (sim.crews[c]) { sim.queue.push(sim.crews[c].cid); sim.crews[c] = null; }
+  if (sim.unloadQ) { sim.queue.push(...sim.unloadQ); sim.unloadQ = []; }
+}
+$('selUnload').addEventListener('change', () => { unloadOn = $('selUnload').value === 'm'; if (!unloadOn) releaseUnloading(); $('inCrews').disabled = !unloadOn; forecastStamp = 0; renderParams(); renderExplain(); });
+$('inCrews').addEventListener('change', () => { const v = Math.max(1, Math.min(5, Math.round(+$("inCrews").value || 3))); P.crews.v = v; $('inCrews').value = v; forecastStamp = 0; $('params')._h = null; renderParams(); renderExplain(); });
 $('btnReset').addEventListener('click', () => newDay());
 $('btnFollow').addEventListener('click', () => { follow = !follow; });
 $('btnBuild').addEventListener('click', () => { buildMode = !buildMode; $('btnBuild').classList.toggle('on', buildMode); $('btnBuild').textContent = buildMode ? 'Done building' : 'Build bays'; });
@@ -1249,9 +1332,9 @@ function renderData() {
   // log table
   const rows = [...recs.values()].filter((r) => r.tDock != null).sort((a, b) => b.tDock - a.tDock).slice(0, 200).map((r) => {
     const b = r.band0;
-    return `<tr><td class="l">${esc(r.label)}</td><td class="l">${TEN[r.dest]}${r.ordered ? ' · order' : ''}</td><td>${clk(r.tDock)}</td><td>${r.tLift != null ? f(r.tLift - r.tDock, 1) : '…'}</td><td>${r.tTrench != null && r.tDeliv != null ? f(r.tDeliv - r.tTrench, 1) : '…'}</td><td>${r.tDeliv != null ? clk(r.tDeliv) : '…'}</td><td>${r.tDeliv != null ? f(r.tDeliv - r.tDock, 1) : '…'}</td><td>${b && b.p10 != null ? clk(b.p10) + '–' + clk(b.p90) : '—'}</td><td>${r.hit == null ? '—' : r.hit ? '<span class="good">yes</span>' : '<span class="bad">no</span>'}</td></tr>`;
+    return `<tr><td class="l">${esc(r.label)}</td><td class="l">${TEN[r.dest]}${r.ordered ? ' · order' : ''}</td><td>${clk(r.tDock)}</td><td>${r.unloadMin != null ? f(r.unloadMin, 1) : '—'}</td><td>${r.tLift != null ? f(r.tLift - r.tDock, 1) : '…'}</td><td>${r.tTrench != null && r.tDeliv != null ? f(r.tDeliv - r.tTrench, 1) : '…'}</td><td>${r.tDeliv != null ? clk(r.tDeliv) : '…'}</td><td>${r.tDeliv != null ? f(r.tDeliv - r.tDock, 1) : '…'}</td><td>${b && b.p10 != null ? clk(b.p10) + '–' + clk(b.p90) : '—'}</td><td>${r.hit == null ? '—' : r.hit ? '<span class="good">yes</span>' : '<span class="bad">no</span>'}</td></tr>`;
   }).join('');
-  const tb = `<tr><th class="l">package</th><th class="l">tenant</th><th>at dock</th><th>dwell min</th><th>stratum min</th><th>delivered</th><th>total min</th><th>promised 80%</th><th>inside?</th></tr>` + (rows || '<tr><td class="l" colspan="9" style="color:var(--dim)">The first packages reach the dock a few minutes after 06:00.</td></tr>');
+  const tb = `<tr><th class="l">package</th><th class="l">tenant</th><th>at dock</th><th>unload min</th><th>dwell min</th><th>stratum min</th><th>delivered</th><th>total min</th><th>promised 80%</th><th>inside?</th></tr>` + (rows || '<tr><td class="l" colspan="10" style="color:var(--dim)">The first packages reach the dock a few minutes after 06:00.</td></tr>');
   if ($('logTable')._h !== tb) { $('logTable').innerHTML = tb; $('logTable')._h = tb; }
 }
 function renderParams() {
@@ -1270,10 +1353,10 @@ $('params').addEventListener('change', (e) => {
   $('params')._h = null; renderParams();
 });
 function csv() {
-  const head = 'package,tenant,ordered,at_dock,lift_start,in_stratum,delivered,dwell_min,total_min,promised_p10,promised_p50,promised_p90,inside_window,futures,jam_futures';
+  const head = 'package,tenant,ordered,at_dock,unload_min,lift_start,in_stratum,delivered,dwell_min,total_min,promised_p10,promised_p50,promised_p90,inside_window,futures,jam_futures';
   const rows = [...recs.values()].filter((r) => r.tDock != null).sort((a, b) => a.tDock - b.tDock).map((r) => {
     const b = r.band0 || {};
-    return [r.label, TEN[r.dest], r.ordered ? 'yes' : 'no', clk(r.tDock), r.tLift != null ? clk(r.tLift) : '', r.tTrench != null ? clk(r.tTrench) : '', r.tDeliv != null ? clk(r.tDeliv) : '',
+    return [r.label, TEN[r.dest], r.ordered ? 'yes' : 'no', clk(r.tDock), r.unloadMin != null ? r.unloadMin.toFixed(2) : '', r.tLift != null ? clk(r.tLift) : '', r.tTrench != null ? clk(r.tTrench) : '', r.tDeliv != null ? clk(r.tDeliv) : '',
       r.tLift != null ? (r.tLift - r.tDock).toFixed(2) : '', r.tDeliv != null ? (r.tDeliv - r.tDock).toFixed(2) : '', b.p10 != null ? clk(b.p10) : '', b.p50 != null ? clk(b.p50) : '', b.p90 != null ? clk(b.p90) : '', r.hit == null ? '' : r.hit ? 'yes' : 'no', b.n || '', b.jams || ''].join(',');
   });
   return head + '\n' + rows.join('\n') + '\n';
@@ -1290,6 +1373,7 @@ $('btnCsv').addEventListener('click', async () => {
    EXPLAIN VIEW — results from headless runs (10 random 8-hour shifts per setting)
    ============================================================ */
 const CAP = {"modes": [{"key": "noCtrl", "name": "Two-way, no controller", "note": "the A2 toy's rules \u00b7 at 16/hr it jams in ~2.7 h", "clean": 3, "ceil": 3}, {"key": "ctrl4", "name": "Controller, only 4 bays", "note": "bays miss some of the 8 choke points", "clean": 0, "ceil": 0, "fail": "jams at any load \u00b7 not a working mode"}, {"key": "sep", "name": "Mail moved to off-hours", "note": "one direction at a time, no controller", "clean": 17, "ceil": 30}, {"key": "ctrl", "name": "Controller + 10 bays", "note": "as designed: head-on carts waved past at a bay", "clean": 18, "ceil": 29}, {"key": "ctrl12", "name": "Controller + 12 bays", "note": "every possible bay built", "clean": 19, "ceil": 31}, {"key": "ctrlFast", "name": "Controller + 12 bays + 1-min lift", "note": "a lift twice as fast", "clean": 39, "ceil": 58}], "scales": [{"name": "1 building", "note": "Tenant A, next to the dock", "note2": "no controller", "clean": 16, "ceil": 29}, {"name": "2 buildings", "note": "A + B", "note2": "no controller", "clean": 13, "ceil": 13}, {"name": "3 buildings", "note": "A + B + C", "note2": "no controller", "clean": 7, "ceil": 7}, {"name": "4 buildings", "note": "the full block", "note2": "no controller", "clean": 3, "ceil": 3}, {"name": "4 buildings", "note": "+ controller", "note2": "+ 10 bays", "clean": 18, "ceil": 29, "hi": true}, {"name": "4 buildings", "note": "+ 12 bays", "note2": "+ 1-min lift", "clean": 39, "ceil": 58}], "swarm": [{"flow": "16/hr", "n": 6, "note": "two-way: jams", "jam": true}, {"flow": "28/hr", "n": 3, "note": "2-min lift"}, {"flow": "55/hr", "n": 6, "note": "1-min lift"}, {"flow": "110/hr", "n": 9, "note": "30 s lift"}, {"flow": "221/hr", "n": 15, "note": "15 s lift"}, {"flow": "304/hr", "n": 18, "note": "lane's limit"}]};
+const CREWCAP = { lo: [6, 11, 16, 23, 27], hi: [7, 14, 22, 28, 30], none: 29 };   // carts/hr, crews 1–5; lo = trials 2, 4, 5 · hi = trials 1, 2, 4, 5
 function bar(x, y, w, h, c, extra) { return `<rect x="${x}" y="${y}" width="${Math.max(0, w)}" height="${h}" rx="3" fill="${c}" ${extra || ''}/>`; }
 function txt(x, y, s, o) { o = o || {}; return `<text x="${x}" y="${y}" fill="${o.c || '#3d4241'}" font-size="${o.s || 11}" font-weight="${o.w || 400}" text-anchor="${o.a || 'start'}" font-family="${o.f === 'm' ? 'Geist Mono, monospace' : 'Geist, system-ui, sans-serif'}">${s}</text>`; }
 function renderExplain() {
@@ -1298,9 +1382,11 @@ function renderExplain() {
   // verdicts
   const ctrl = C.modes.find((m) => m.key === 'ctrl');
   const fast = C.modes.find((m) => m.key === 'ctrlFast');
+  const nc = Math.min(5, P.crews.v), cLo = CREWCAP.lo[nc - 1] * H16, cHi = CREWCAP.hi[nc - 1] * H16;
+  const crewRate = (60 / UNLOAD_MEAN) * P.crews.v, liftRate = 60 / P.cycle.v;
   $('verdicts').innerHTML = [
-    ['Per day, as designed', `${ctrl.clean * H16}–${ctrl.ceil * H16}<small> carts / 16 h</small>`, `About ${(ctrl.clean * H16 * 10).toLocaleString()}–${(ctrl.ceil * H16 * 30).toLocaleString()} parcels at 10–30 parcels a cart. Needs a traffic controller and passing bays at all 8 choke points; without them the lane jams within hours.`],
-    ['Bottleneck', `Dock lift<small> · ${60 / 2} carts/hr</small>`, 'One lift lowering one cart every 2 minutes sets the ceiling. The lane itself can carry about 300 carts/hr in one direction.'],
+    ['Per day, with measured unloading', `${cLo}–${cHi}<small> carts / 16 h · ${P.crews.v} crew${P.crews.v > 1 ? 's' : ''}</small>`, `With the H-E-B unloading times, ${P.crews.v} crew${P.crews.v > 1 ? 's' : ''} at the dock. Without unloading (the A2 rule) the same block carried ${ctrl.clean * H16}–${ctrl.ceil * H16}. Still needs the traffic controller and bays at all 8 choke points.`],
+    ['Bottleneck', crewRate < liftRate ? `Dock crews<small> · ~${Math.round(crewRate)} carts/hr</small>` : `Dock lift<small> · ${Math.round(liftRate)} carts/hr</small>`, crewRate < liftRate ? `Measured at H-E-B: about ${UNLOAD_MEAN.toFixed(1)} min to open, inspect, pull a load onto the dock and scan it, so each crew handles ~${(60 / UNLOAD_MEAN).toFixed(0)} an hour. The lift (${Math.round(liftRate)}/hr) only binds from 5 crews up.` : 'One lift lowering one cart every 2 minutes sets the ceiling. The lane itself can carry about 300 carts/hr in one direction.'],
     ['Floor plenums', `No<small> · cart is 1.05 m tall</small>`, 'Office raised floors are 41–70 mm deep and data-centre floors 0.8–1.0 m. The robot only travels the stratum and the tenant lifts.'],
     ['Swarm', `One way: yes<small> · two way: only with bays</small>`, 'In one direction up to 18 robots can follow each other through the lane without a jam. Head-on traffic needs bays at every choke point and a controller.'],
   ].map((v) => `<div class="vcard"><div class="q">${v[0]}</div><div class="a">${v[1]}</div><div class="w">${v[2]}</div></div>`).join('');
@@ -1310,8 +1396,8 @@ function renderExplain() {
     const w = 980, h = 300; let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Flow of one package from van to tenant with capacity per step">`;
     const st = [
       ['Van at the curb', 'street', '3–8 min drive', 'any', '#5d6361'],
-      ['Loading dock', 'street level', '5 pads to wait on', '5 waiting', '#5d6361'],
-      ['Dock lift', 'down one storey', `${P.cycle.v} min per cart`, `${Math.round(60 / P.cycle.v)} / hr`, '#d1492b'],
+      unloadOn ? ['Unload + scan', `street level · ${P.crews.v} crew${P.crews.v > 1 ? 's' : ''}`, `${UNLOAD_MEAN.toFixed(1)} min (measured)`, `${Math.round(crewRate)} / hr`, crewRate < liftRate ? '#d1492b' : '#5d6361'] : ['Loading dock', 'street level', '5 pads to wait on', '5 waiting', '#5d6361'],
+      ['Dock lift', 'down one storey', `${P.cycle.v} min per cart`, `${Math.round(60 / P.cycle.v)} / hr`, unloadOn && crewRate < liftRate ? '#5d6361' : '#d1492b'],
       ['The stratum', '−2.3 m, one lane, 17 rows', '9 s per 2.3 m row', '~300 / hr one way', '#14905f'],
       ['Tenant lift', '×4, up to the lobby', 'not simulated', 'not tested', '#2f74a8'],
       ['Tenant lobby', 'A · B · C · D', 'delivered', '', '#5d6361'],
@@ -1322,12 +1408,13 @@ function renderExplain() {
     st.forEach((d, i) => {
       const x = 10 + i * (bw + gap); const below = i === 3; const y = below ? 176 : i === 2 ? 120 : 60;
       if (i < st.length - 1) { const x2 = 10 + (i + 1) * (bw + gap); const y2 = (i + 1) === 3 ? 176 : (i + 1) === 2 ? 120 : 60; s += `<path d="M${x + bw} ${y + 34} C ${x + bw + gap / 2} ${y + 34}, ${x2 - gap / 2} ${y2 + 34}, ${x2} ${y2 + 34}" fill="none" stroke="#14905f" stroke-width="3" marker-end="url(#ah)"/>`; }
-      s += `<rect x="${x}" y="${y}" width="${bw}" height="68" rx="10" fill="#f6f6f4" stroke="${d[4]}" stroke-width="${i === 2 ? 2.5 : 1.2}"/>`;
+      s += `<rect x="${x}" y="${y}" width="${bw}" height="68" rx="10" fill="#f6f6f4" stroke="${d[4]}" stroke-width="${d[4] === '#d1492b' ? 2.5 : 1.2}"/>`;
       s += txt(x + 10, y + 20, d[0], { c: '#0f1111', w: 600, s: 13 }) + txt(x + 10, y + 36, d[1], { s: 10.5, c: '#7a7f7e' }) + txt(x + 10, y + 54, d[2], { s: 10.5, f: 'm' });
       if (d[3]) s += txt(x + bw / 2, y + 88, d[3], { s: 12, w: 600, a: 'middle', c: d[4], f: 'm' });
     });
     s += `<defs><marker id="ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#14905f"/></marker></defs>`;
-    s += txt(10 + 2 * (bw + gap) + bw / 2, 112, '▼ narrowest step', { a: 'middle', c: '#d1492b', s: 11, w: 600 });
+    const ni = unloadOn && crewRate < liftRate ? 1 : 2;
+    s += txt(10 + ni * (bw + gap) + bw / 2, ni === 1 ? 52 : 112, '▼ narrowest step', { a: 'middle', c: '#d1492b', s: 11, w: 600 });
     s += txt(10, 286, 'Outgoing mail runs the other way through the same lane, 3 carts an hour from each building. That two-way traffic is what makes passing bays necessary.', { s: 12 });
     s += '</svg>'; $('flowSvg').innerHTML = s;
   }
@@ -1347,7 +1434,26 @@ function renderExplain() {
     });
     s += '</svg>'; $('daySvg').innerHTML = s;
   }
-  // 3 · scales
+  // 3 · crews
+  {
+    const w = 980, h = 300, n = 5, mx = 520; const bw = (w - 80) / (n + 1); const Y = (v) => 240 - (v / mx) * 200;
+    let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Carts per day against the number of dock crews, with measured unloading">`;
+    for (let v = 0; v <= mx; v += 100) s += `<line x1="52" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ececea"/>` + txt(46, Y(v) + 3, String(v), { s: 10, a: 'end', f: 'm', c: '#7a7f7e' });
+    const goal = P.rate.v * H16;
+    const bars = [{ name: 'A2 rule', note: 'instant unloading', lo: CREWCAP.none, hi: CREWCAP.none, grey: true }].concat(CREWCAP.lo.map((lo, i) => ({ name: (i + 1) + ' crew' + (i ? 's' : ''), note: Math.round((60 / UNLOAD_MEAN) * (i + 1)) + '/hr unloaded', lo, hi: CREWCAP.hi[i], on: i + 1 === P.crews.v })));
+    bars.forEach((m, i) => {
+      const x = 60 + i * bw, bx = x + bw * 0.2, bwid = bw * 0.6;
+      s += bar(bx, Y(m.hi * H16), bwid, 240 - Y(m.hi * H16), m.grey ? '#e2e3e0' : 'rgba(20,144,95,0.22)') + bar(bx, Y(m.lo * H16), bwid, 240 - Y(m.lo * H16), m.grey ? '#9aa09e' : m.on ? '#14905f' : '#0f1111');
+      s += txt(x + bw / 2, Y(m.hi * H16) - 6, m.lo === m.hi ? String(m.hi * H16) : `${m.lo * H16}–${m.hi * H16}`, { a: 'middle', f: 'm', s: 11, c: '#0f1111' });
+      s += txt(x + bw / 2, 258, m.name, { a: 'middle', s: 12, c: '#0f1111', w: m.on ? 700 : 600 }) + txt(x + bw / 2, 274, m.note, { a: 'middle', s: 10, c: '#7a7f7e' });
+    });
+    s += `<line x1="52" x2="${w}" y1="${Y(goal)}" y2="${Y(goal)}" stroke="#b97a1c" stroke-dasharray="5 4"/>`;
+    s += txt(54, 14, 'carts per 16-hour day', { s: 10, f: 'm', c: '#7a7f7e' });
+    s += '</svg>'; $('crewSvg').innerHTML = s;
+    const need = CREWCAP.lo.findIndex((v) => v >= P.rate.v) + 1;
+    $('crewNote').innerHTML = `Unloading is <span class="tag m">measured</span>: laps 1–4 and 7 of H-E-B trials 1, 2, 4 and 5 (${HEB.filter((t) => t.use).map((t) => (t.dock < 1 ? Math.round(t.dock * 60) + ' s' : t.dock.toFixed(1) + ' min')).join(', ')}). Trial 3 (forklift freight, ${HEB[2].dock.toFixed(1)} min) is left out because it does not fit a cart. One delivery is counted as one cart <span class="tag a">assumed</span>. ${need > 0 ? `The dashed amber line is ${P.rate.v} carts an hour (${P.rate.v * 16} a day). To keep up with it the dock needs <b>${need} crew${need > 1 ? 's' : ''}</b>.` : `No crew count up to 5 keeps up with ${P.rate.v} carts an hour.`}`;
+  }
+  // 4 · scales
   {
     const S = C.scales; const w = 980, h = 290; const mx = Math.max(...S.map((m) => m.ceil)) * H16 * 1.1;
     const bw = (w - 60) / S.length; const Y = (v) => 230 - (v / mx) * 190;
@@ -1364,7 +1470,7 @@ function renderExplain() {
     s += txt(46, 14, 'carts per 16-hour day', { s: 10, f: 'm', c: '#7a7f7e' });
     s += '</svg>'; $('scaleSvg').innerHTML = s;
   }
-  // 4 · plenum
+  // 5 · plenum
   {
     const w = 480, h = 300, base = 262, k = 92; // px per metre, everything to one scale
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Robot height compared with plenum depths">`;
@@ -1378,7 +1484,7 @@ function renderExplain() {
     s += `<line x1="20" x2="${w - 10}" y1="${base - 1.05 * k}" y2="${base - 1.05 * k}" stroke="#14905f" stroke-dasharray="4 4" stroke-opacity="0.7"/>` + txt(24, base - 1.05 * k - 26, 'robot height ↓', { s: 10, c: '#14905f', f: 'm' });
     s += '</svg>'; $('plenumSvg').innerHTML = s;
   }
-  // 5 · swarm
+  // 6 · swarm
   {
     const W = C.swarm; const w = 480, h = 300; const mx = 20; const Y = (v) => 240 - (v / mx) * 200; const bw = (w - 60) / W.length;
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Robots in the lane at once at increasing flow">`;
@@ -1394,7 +1500,7 @@ function renderExplain() {
     s += '</svg>'; $('swarmSvg').innerHTML = s;
   }
   $('howKnow').innerHTML = `<p>Every bar comes from the simulation under the map: the same rows, bays, dock lift and jam rules as the A3 toy, with random arrivals. For each setting we ran <b>10 random 8-hour shifts</b> at rising arrival rates. The solid bar is the highest rate where at least 8 of the 10 shifts never spilled a cart onto the curb and never jammed; the pale bar is the highest rate where the dock queue stayed bounded. Days assume <b>16 operating hours</b> <span class="tag a">assumed</span>.</p>
-    <p><b>Measured, sourced, assumed.</b> Plenum depths are <span class="tag s">sourced</span> (Wikipedia, Raised floor). Arrival rate, lift cycle, robot speed, mail rate, lingering, parcels per cart and the 16-hour day are <span class="tag a">assumed</span> until your field kit measures them. The traffic controller is a planner rule, not physics: it waves head-on carts past each other at a bay.</p>
+    <p><b>Measured, sourced, assumed.</b> Dock unloading is <span class="tag m">measured</span>: five timed unloads at an H-E-B loading dock, four of which fit a cart. Plenum depths are <span class="tag s">sourced</span> (Wikipedia, Raised floor). Arrival rate, lift cycle, robot speed, mail rate, lingering, parcels per cart and the 16-hour day are <span class="tag a">assumed</span> until your field kit measures them. The traffic controller is a planner rule, not physics: it waves head-on carts past each other at a bay.</p>
     <p><b>What the model cannot know.</b> Tenant lifts are drawn but not simulated, so their capacity is untested. There is no maintenance downtime, no battery charging, no turning radius and no structure. Bands show random variation inside the model, not doubt about the model itself, so the real spread is wider than any band here.</p>`;
 }
 $('btnRecalc').addEventListener('click', () => {
@@ -1407,17 +1513,17 @@ $('btnRecalc').addEventListener('click', () => {
       for (let seed = 1; seed <= 10; seed++) {
         const s = freshLogicalState(); const rng = mulberry32(seed * 977 + r);
         const was = arrivalMode; setArrivalMode('steady');
-        const opts = { rng, recover: ctrl, order: bayOrder(), noOutgoing: !mailOn, mailFrom: [0, 1, 2, 3] };
+        const opts = { rng, recover: ctrl, order: bayOrder(), noOutgoing: !mailOn, mailFrom: [0, 1, 2, 3], unload: unloadOpt() };
         let deadT = 0;
         for (let i = 0; i < 9600; i++) { if (ctrl) s.untangle = true; stepLogical(s, 0.05, policy, r, P.cycle.v, bays.size, opts); if (s.deadlocked) { deadT += 0.05; if (!ctrl) break; } }
         setArrivalMode(was);
-        if (deadT < 1 && s.queue.length <= 12) ok++;
+        if (deadT < 1 && s.queue.length + (s.unloadQ ? s.unloadQ.length : 0) <= 12) ok++;
         if (deadT < 1 && !s.curbEverOccurred) okClean++;
       }
       if (okClean >= 8) bestClean = r;
       if (ok >= 8) { best = r; fails = 0; } else if (++fails >= 3) break;
     }
-    $('recalcNote').innerHTML = `Current map settings (${bays.size} bays, ${f(P.cycle.v, 1)}-min lift, controller ${ctrl ? 'on' : 'off'}, mail ${mailOn ? 'on' : 'off'}): <b style="color:var(--text)">${bestClean * 16}–${best * 16} carts per 16-hour day</b> (${bestClean}–${best} per hour).`;
+    $('recalcNote').innerHTML = `Current map settings (${bays.size} bays, ${f(P.cycle.v, 1)}-min lift, controller ${ctrl ? 'on' : 'off'}, mail ${mailOn ? 'on' : 'off'}, unloading ${unloadOn ? 'measured with ' + P.crews.v + ' crew' + (P.crews.v > 1 ? 's' : '') : 'instant'}): <b style="color:var(--text)">${unloadOn ? 'up to ' + best * 16 : bestClean * 16 + '–' + best * 16} carts per 16-hour day</b> (${unloadOn ? best : bestClean + '–' + best} per hour).`;
   }, 30);
 });
 
