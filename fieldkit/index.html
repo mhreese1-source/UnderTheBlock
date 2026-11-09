@@ -200,7 +200,7 @@
 <main>
   <!-- ================= COUNT ================= -->
   <section class="view" id="view-count">
-    <div class="eyebrow">A3 · Move 3 · Bench test</div>
+    <div class="eyebrow">Bench test</div>
     <h1>Count arrivals at the dock</h1>
     <p>One window is one repeat. Tap <b>Arrival</b> each time a van, cart or person joins, and tap their chip when they leave. The kit timestamps everything, so you get λ, W and L for every window without writing anything down.</p>
 
@@ -262,7 +262,7 @@
 
   <!-- ================= LIFT ================= -->
   <section class="view" id="view-lift" hidden>
-    <div class="eyebrow">A3 · Move 3 · Bench test</div>
+    <div class="eyebrow">Bench test</div>
     <h1>Time the lift cycle</h1>
     <p>This grounds the dock lift's 2-minute cycle (μ = 30 carts/hr in the toy). One cycle: doors open at the dock floor, load, doors close and it leaves, then it comes back and the doors open again. Do at least five.</p>
     <div class="card">
@@ -289,7 +289,7 @@
 
   <!-- ================= DOCK ================= -->
   <section class="view" id="view-dock" hidden>
-    <div class="eyebrow">A3 · Move 3 · Bench test</div>
+    <div class="eyebrow">Bench test</div>
     <h1>Time a dock unload</h1>
     <p>One trial is one delivery, from opening the truck doors to the load scanned in. Tap the big button as each step ends; the kit keeps every split. Steps 1–4 and 7 are dock work a crew still does at the stratum's dock. Steps 5–6, carrying the load to receiving and sorting it, are the work the dock lift and robots take over.</p>
     <div class="card">
@@ -315,7 +315,7 @@
 
   <!-- ================= RESULTS ================= -->
   <section class="view" id="view-results" hidden>
-    <div class="eyebrow">A3 · Evidence</div>
+    <div class="eyebrow">Results</div>
     <h1>What the bench test measured</h1>
     <p>Every number here is computed from your taps. Toy values are amber and tagged <span class="tag a">assumed</span>; yours are mint and tagged <span class="tag m">measured</span>.</p>
     <div class="row">
@@ -370,7 +370,7 @@
       </div>
 
       <div class="card">
-        <h2>A3 bench-test rules</h2>
+        <h2>Bench-test checklist</h2>
         <div class="checklist" id="checklist" style="margin-top:10px"></div>
         <div class="grid2" style="margin-top:12px">
           <div class="field"><label for="inWrong">One sentence on what could have gone wrong</label><textarea id="inWrong" placeholder="e.g. I only watched late mornings, and staff estimated package counts for two vans."></textarea></div>
@@ -403,9 +403,9 @@
 
   <!-- ================= CONTRACT ================= -->
   <section class="view" id="view-contract" hidden>
-    <div class="eyebrow">A3 · Moves 1 and 4</div>
+    <div class="eyebrow">Notes</div>
     <h1>Contract, prediction and lab log</h1>
-    <p>The contract is the grading datum. Write the prediction before you test it and lock it, so the time it was written is on record.</p>
+    <p>Write down the claim and how it could be proven wrong. Lock the prediction before you test it, so the time it was written is on record.</p>
     <div class="card">
       <h2>The contract</h2>
       <div class="grid2" style="grid-template-columns:minmax(0,1fr);margin-top:8px">
@@ -415,7 +415,7 @@
       </div>
     </div>
     <div class="card">
-      <h2>Prediction (Move 4)</h2>
+      <h2>Prediction</h2>
       <div class="note">Change one thing in the toy, write what it predicts for a window you have not counted yet, then lock it before you go out.</div>
       <div class="field" style="margin-top:10px"><label for="cPred">Prediction</label><textarea id="cPred" placeholder="e.g. With arrivals set to the measured 7.4/hr and a 95 s lift cycle, the toy predicts an average of 0.9 vans inside and W = 7 min for Thursday 10:00–10:30."></textarea></div>
       <div class="row" style="margin-top:10px"><button class="btn primary" id="btnLock">Lock prediction</button><span class="lock" id="lockNote"></span></div>
@@ -440,7 +440,7 @@
     <div class="pd" id="pcDate"></div>
     <div class="ps" id="pcSite"></div>
     <div class="ruler" id="pcRuler" aria-hidden="true"></div>
-    <div class="pf">UnderTheBlock Field Kit · ARC 327R · tap anywhere to close</div>
+    <div class="pf">UnderTheBlock Field Kit · tap anywhere to close</div>
   </div>
 </div>
 
@@ -950,7 +950,7 @@ function renderResults() {
     ['Lift cycle', `minutes per full cycle, ${R.cyc ? R.cyc.n : 0} cycles`, `${f(TOY.cycleMin, 2)}`, 'μ = 30 carts/hr', cycMin != null ? `${f(cycMin, 2)}` : '—', mu != null ? `± ${f(R.cyc.sd / 60, 2)} · μ = ${f(mu, 1)} carts/hr` : 'time the lift'],
     ['Load on the lift ρ', 'λ ÷ μ: below 1 the queue clears', `${f(TOY.mean / TOY.mu, 2)}`, 'average, wave mode', rho != null ? f(rho, 2) : '—', rho != null ? (rho >= 1 ? '<span style="color:var(--warn)">queue never clears</span>' : 'queue clears') : 'needs both'],
     ['Time inside W', 'minutes from arrival to leaving', '—', 'toy measures this live', R.W ? f(R.W.mean, 1) : '—', R.W ? `± ${f(R.W.sd, 1)} min` : ''],
-    ['Dock work per delivery', `minutes, steps 1–4 and 7, ${DS.dock ? DS.dock.n : 0} trials that fit a cart`, '0', 'A2 rule: unloading is instant', DS.dock ? f(DS.dock.mean, 1) : '—', DS.dock ? `± ${f(DS.dock.sd, 1)} · one crew ≈ ${f(DS.crewHr, 1)} carts/hr` : 'time an unload'],
+    ['Dock work per delivery', `minutes, steps 1–4 and 7, ${DS.dock ? DS.dock.n : 0} trials that fit a cart`, '0', 'before the trials: instant', DS.dock ? f(DS.dock.mean, 1) : '—', DS.dock ? `± ${f(DS.dock.sd, 1)} · one crew ≈ ${f(DS.crewHr, 1)} carts/hr` : 'time an unload'],
   ];
   let html = `<div class="vsrow" style="padding-top:4px"><div></div><div class="cap">toy <span class="tag a">assumed</span></div><div class="cap">you <span class="tag m">measured</span></div></div>` +
     vs.map((r) => `<div class="vsrow"><div><div class="what">${r[0]}</div><div class="cap">${r[1]}</div></div><div><div class="big toy">${r[2]}</div><div class="cap">${r[3]}</div></div><div><div class="big meas">${r[4]}</div><div class="cap">${r[5]}</div></div></div>`).join('');
@@ -1023,7 +1023,7 @@ function renderDockResults() {
     (D.dock ? `<tr><td class="l" colspan="2" style="color:var(--text)">mean ± sd, fits a cart</td><td class="dk">${f(D.dock.mean, 1)} ± ${f(D.dock.sd, 1)} min</td><td colspan="4"></td></tr>` : '');
   if ($('dkResTable')._h !== tb) { $('dkResTable').innerHTML = tb; $('dkResTable')._h = tb; }
   const rho = D.crewHr ? TOY.peak / D.crewHr : null;
-  const use = `<h3>What it changes in the toy</h3><div class="note" style="font-size:13.5px;color:var(--body);margin-top:6px">The A2 toy treated unloading as instant, so the dock lift (30 carts/hr) was the bottleneck. Measured, one crew needs about <b>${D.dock ? f(D.dock.mean, 1) : '—'} min</b> of dock work per delivery, so it handles about <b>${D.crewHr ? f(D.crewHr, 1) : '—'}</b> deliveries an hour. At the toy's ${TOY.peak}/hr peak one crew is loaded to ρ = ${rho ? f(rho, 2) : '—'}${rho && rho >= 1 ? ' and the curb queue never clears' : ''}. <b>The crew, not the lift, becomes the narrowest step</b> until about 4–5 crews work at once. The tracker now runs with this measurement: set <i>unloading: measured</i> and choose the number of crews. One delivery is counted as one cart <span class="tag a">assumed</span>.</div>`;
+  const use = `<h3>What it changes in the toy</h3><div class="note" style="font-size:13.5px;color:var(--body);margin-top:6px">The model used to treat unloading as instant, so the dock lift (30 carts/hr) was the bottleneck. Measured, one crew needs about <b>${D.dock ? f(D.dock.mean, 1) : '—'} min</b> of dock work per delivery, so it handles about <b>${D.crewHr ? f(D.crewHr, 1) : '—'}</b> deliveries an hour. At the toy's ${TOY.peak}/hr peak one crew is loaded to ρ = ${rho ? f(rho, 2) : '—'}${rho && rho >= 1 ? ' and the curb queue never clears' : ''}. <b>The crew, not the lift, becomes the narrowest step</b> until about 4–5 crews work at once. The tracker now runs with this measurement: set <i>unloading: measured</i> and choose the number of crews. One delivery is counted as one cart <span class="tag a">assumed</span>.</div>`;
   if ($('dkUse')._h !== use) { $('dkUse').innerHTML = use; $('dkUse')._h = use; }
   drawDock(D);
 }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Under the Block</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Under the Block: a micro-freight stratum beneath a city block. ARC 327R Architecture & Computation, A3 The Instrument. Micah Reese.">
+<meta name="description" content="Under the Block: a micro-freight stratum beneath a city block. one loading dock, one lane under the plaza, and robots carrying every delivery to four buildings..">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
@@ -213,7 +213,7 @@
 <body>
 
 <header class="hero" id="top">
-  <img src="images/a2-hero.jpg" width="1800" height="891" alt="The A2 live model: four tenant buildings on a plaza, the service trench cut open in front of them with a glass lift at each building, and the dock lift at the street">
+  <img src="images/a2-hero.jpg" width="1800" height="891" alt="The live model: four tenant buildings on a plaza, the service trench cut open in front of them with a glass lift at each building, and the dock lift at the street">
   <nav class="nav" aria-label="Main">
     <a class="brand" href="#top">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.4)"/><path d="M6 12h20" stroke="#fff" stroke-width="1.6"/><rect x="6" y="17" width="20" height="6" rx="2" fill="none" stroke="#fff" stroke-width="1.6"/><rect x="9" y="18.6" width="4" height="2.8" rx=".8" fill="#7fd1ab"/><path d="M23 12v5" stroke="#fff" stroke-width="1.6"/></svg>
@@ -222,7 +222,6 @@
     <div class="links">
       <a href="#stratum">The stratum</a>
       <a href="#apps">Apps</a>
-      <a href="#instrument">A3</a>
       <a href="#findings">Findings</a>
     </div>
     <a class="pill light small" href="track/index.html">Track a delivery</a>
@@ -258,7 +257,7 @@
   <a class="ic" href="toy/index.html">
     <img src="images/a2-render.jpg" alt="The live 3D model of the block in section" style="object-position:30% 70%">
     <span class="arrow" aria-hidden="true">↗</span>
-    <div class="cap"><small>Model · A2 + Move 2</small><b>Under the Block</b><span>The live model in section, and the Little's law check.</span></div>
+    <div class="cap"><small>Model</small><b>Under the Block</b><span>The live model in section, and the Little's law check.</span></div>
   </a>
   <a class="ic light" href="track/index.html">
     <img src="images/track-map.jpg" alt="Plan map of the stratum with a package pinned at a passing bay" style="object-position:40% 55%">
@@ -268,7 +267,7 @@
   <a class="ic light" href="fieldkit/index.html">
     <img src="images/fieldkit-results.jpg" alt="The field kit's results screen on a phone" style="object-position:center 58%">
     <span class="arrow" aria-hidden="true">↗</span>
-    <div class="cap"><small>Bench test · Move 3</small><b>Field Kit</b><span>Time dock unloads step by step, count arrivals, time a lift.</span></div>
+    <div class="cap"><small>Bench test</small><b>Field Kit</b><span>Time dock unloads step by step, count arrivals, time a lift.</span></div>
   </a>
 </div>
 
@@ -395,34 +394,7 @@
           <text x="20" y="420" font-family="Geist Mono, ui-monospace, Menlo, Consolas, monospace" font-size="10.5" fill="#7a7f7e">SECTION A–A · not to scale horizontally · vertical dimensions true</text>
         </svg>
       </div>
-      <div class="note"><span>Section through the block, dock to tenant</span><span>Dimensions from the A3 parameter ledger · assumed</span></div>
-    </div>
-  </div>
-</section>
-
-<section class="sec" id="instrument">
-  <div class="wrap">
-    <div class="head">
-      <div><div class="eyebrow">A2 → A3</div><h2>From playground to instrument.</h2></div>
-      <p>A2 let the configuration grow out of what the carts refused to do. A3 asks for a truer toy, not a bigger one: one claim, one test, one correction.</p>
-    </div>
-    <div class="two inst">
-      <div class="panel soft prose">
-        <p class="quote">The toy can discover a configuration within its system, but it cannot question the system itself.</p>
-        <small>A2 note · quoted in the A3 brief</small>
-        <p style="margin-top:22px">One narrow service trench became a network of compressed rows and passing pockets. Carts meeting head-on with nowhere to pass deadlocked, and passing pockets appeared where those conflicts happened. Neither of us would have drawn that network; the toy turned failure into a spatial requirement.</p>
-      </div>
-      <div class="panel">
-        <div class="figimg"><img src="images/known-result.jpg" width="1600" height="545" alt="Chart: carts waiting after four hours against arrival rate; toy points sit on the textbook line, flat until 30 per hour and rising after it" loading="lazy"></div>
-        <p class="cap2"><b style="color:var(--ink);font-weight:500">Move 2 · the known result.</b> Below capacity the toy matches Little's law, L = λW, within 4.3%. Above the lift's 30 carts an hour its queue lands within one cart of (λ − μ) × 4 h. With mail running the other way, the lane jammed in 6 of 16 runs.</p>
-      </div>
-    </div>
-    <div class="moves">
-      <div class="move"><div class="k">Move 1 · W7</div><h3>Contract</h3><p>Claim, what the toy cannot know, the test. Every rule and number in a ledger.</p><div class="st done"><span>drafted</span></div></div>
-      <div class="move"><div class="k">Move 2 · W8</div><h3>Known result</h3><p>The toy reproduces L = λW and the textbook queue above capacity.</p><div class="st done"><span>reproduced</span></div></div>
-      <div class="move"><div class="k">Move 3 · W8–W9</div><h3>Bench test</h3><p>Five unloads timed at an H-E-B loading dock, step by step. Arrival counts and the lift cycle are next.</p><div class="st done"><span>unloading measured</span></div></div>
-      <div class="move"><div class="k">Move 4 · W10</div><h3>Correct, predict</h3><p>Unloading is swapped in: the dock crew, not the lift, is now the narrowest step. Lock a prediction, then test it.</p><div class="st ready"><span>correction in</span></div></div>
-      <div class="move"><div class="k">Move 5 · W11</div><h3>Evidence panel</h3><p>Measured, sourced and assumed on screen for a stranger.</p><div class="st"><span>next</span></div></div>
+      <div class="note"><span>Section through the block, dock to tenant</span><span>Dimensions in metres</span></div>
     </div>
   </div>
 </section>
@@ -450,33 +422,9 @@
       <p class="cap2">Controller and 10 bays on, as designed. Dark: leaving out trial 1's 38-second pallet. Pale: keeping it in. The dashed amber line is the toy's 16 carts an hour, 256 a day.</p>
     </div>
     <div class="panel chart" style="margin-top:12px">
-      <div class="eyebrow">Intermediate scales · carts per 16-hour day · instant unloading (A2 rule)</div>
+      <div class="eyebrow">Intermediate scales · carts per 16-hour day · instant unloading</div>
       <div class="scroll" id="scaleChart" style="margin-top:12px"></div>
       <p class="cap2">Dark: no curb spill in at least 8 of 10 shifts. Pale: the queue stays bounded. Each added building multiplies head-on conflicts in the single lane.</p>
-    </div>
-  </div>
-</section>
-
-<section class="sec" id="ledger">
-  <div class="wrap">
-    <div class="head">
-      <div><div class="eyebrow">What the model cannot know</div><h2>Guesses, until measured.</h2></div>
-      <p>Tenant lifts are drawn but not simulated. There is no maintenance, charging, turning radius or structure, and the traffic controller is a planner rule, not physics.</p>
-    </div>
-    <div class="panel scroll">
-      <table class="ledger">
-        <thead><tr><th>Number the verdict depends on</th><th>Value</th><th>Tag</th><th>How it gets grounded</th></tr></thead>
-        <tbody>
-          <tr><td>Dock work per delivery</td><td class="v">8.4 min · 0.6–11.8</td><td><span class="tag m">measured</span></td><td>H-E-B loading dock, five unloads timed lap by lap (trials 1, 2, 4, 5 fit a cart)</td></tr>
-          <tr><td>Dock crews working at once</td><td class="v">3</td><td><span class="tag a">assumed</span></td><td>The fewest that keep up with 16 carts/hr; to confirm with the dock manager</td></tr>
-          <tr><td>Arrivals at the dock</td><td class="v">16 carts/hr peak</td><td><span class="tag a">assumed</span></td><td>Field Kit counts at the Jester mail center, five 30-minute windows</td></tr>
-          <tr><td>Dock lift cycle</td><td class="v">2 min</td><td><span class="tag a">assumed</span></td><td>Field Kit timing of a campus freight elevator, five cycles</td></tr>
-          <tr><td>Time to cross one 2.3 m row</td><td class="v">0.15 min</td><td><span class="tag a">assumed</span></td><td>Robot spec sheet</td></tr>
-          <tr><td>Outgoing mail per building</td><td class="v">3 carts/hr</td><td><span class="tag a">assumed</span></td><td>Mail-room pickup counts</td></tr>
-          <tr><td>Raised-floor depth</td><td class="v">41–70 mm · 0.8–1.0 m</td><td><span class="tag s">sourced</span></td><td><a href="https://en.wikipedia.org/wiki/Raised_floor">Wikipedia, Raised floor</a></td></tr>
-          <tr><td>Little's law in the toy</td><td class="v">within 4.3%</td><td><span class="tag m">reproduced</span></td><td>Move 2, shown in the model</td></tr>
-        </tbody>
-      </table>
     </div>
   </div>
 </section>
@@ -486,11 +434,11 @@
     <div class="fgrid">
       <div><h4>Under the Block</h4><span style="max-width:34ch">A micro-freight stratum beneath a city block. A fictional project for ARC 327R Architecture &amp; Computation.</span></div>
       <div><h4>Apps</h4><a href="toy/index.html">Model</a><a href="fieldkit/index.html">Field Kit</a><a href="track/index.html">Track</a></div>
-      <div><h4>Project</h4><a href="#stratum">The stratum</a><a href="#instrument">A2 → A3</a><a href="#findings">Findings</a><a href="#ledger">Ledger</a></div>
+      <div><h4>Project</h4><a href="#stratum">The stratum</a><a href="#findings">Findings</a></div>
       <div><h4>Course</h4><span>ARC 327R</span><span>UT Austin · Fall 2026</span><span>Micah Reese</span></div>
     </div>
     <div class="fbig">Under<span> the Block</span></div>
-    <div class="fmeta"><span>A3 · The Instrument · 06 Nov 2026</span><span>Every page runs in the browser · no install</span></div>
+    <div class="fmeta"><span>Updated 08 Nov 2026</span><span>Every page runs in the browser · no install</span></div>
   </div>
 </footer>
 
@@ -551,7 +499,7 @@
   document.getElementById('hebChart').innerHTML = s;
 
   // carts per day against dock crews (headless runs, queue stays bounded)
-  var C = [{ n: 'Instant', a: 'A2 rule', lo: 29, hi: 29, g: true }, { n: '1 crew', lo: 6, hi: 7 }, { n: '2 crews', lo: 11, hi: 14 }, { n: '3 crews', lo: 16, hi: 22, key: true }, { n: '4 crews', lo: 23, hi: 28 }, { n: '5 crews', lo: 27, hi: 30 }];
+  var C = [{ n: 'Instant', a: 'no unloading time', lo: 29, hi: 29, g: true }, { n: '1 crew', lo: 6, hi: 7 }, { n: '2 crews', lo: 11, hi: 14 }, { n: '3 crews', lo: 16, hi: 22, key: true }, { n: '4 crews', lo: 23, hi: 28 }, { n: '5 crews', lo: 27, hi: 30 }];
   var mx3 = 500, base3 = 230, top3 = 30; var Y3 = function (v) { return base3 - (v / mx3) * (base3 - top3); };
   var bw3 = (w - 70) / C.length;
   s = '<svg viewBox="0 0 ' + w + ' 280" role="img" aria-label="Carts per day against the number of dock crews">';

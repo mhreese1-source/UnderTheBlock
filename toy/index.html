@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Under the Block A3</title>
+<title>Under the Block</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- One self-contained file: the 3D renderer, the physics engine and the
      camera controls are all written into this page. Nothing is downloaded,
@@ -384,7 +384,7 @@
       <a href="#refuse" data-spy="refuse">Refusal</a>
       <a href="#learn" data-spy="learn">Learning</a>
       <a href="#trace" data-spy="trace">Score &amp; trace</a>
-      <a href="#known" data-spy="known" class="a3">A3 · L = λW</a>
+      <a href="#known" data-spy="known" class="a3">Known result</a>
     </nav>
     <div class="livechip" title="Live run status"><span class="dot" aria-hidden="true"></span><span class="stats" id="stats">—</span></div>
   </div>
@@ -400,7 +400,7 @@
 
     <div class="cta-row">
       <a class="cta primary" href="#model">Open the live model</a>
-      <a class="cta" href="#known">A3 known result: L = λW →</a>
+      <a class="cta" href="#known">Known result: L = λW →</a>
     </div>
   </div>
   <div class="hero-stats" aria-label="The block in numbers">
@@ -620,7 +620,7 @@ on "apply" (the suggestion goes straight to the model)
                 light the jammed cells or the curb pads, explain it in the banner</pre></details>
 </section>
 
-<div class="parthead"><div class="partlabel">Part 3 · A3 · The Instrument</div>
+<div class="parthead"><div class="partlabel">Part 3 · Known result</div>
 <h2>Known Result: Little's Law</h2></div>
 <p>Before this toy is trusted with real dock counts, it has to reproduce a result that is already known. Queueing theory gives one that fits a loading dock exactly, and it holds whatever the routing, the trench or the arrival pattern, as long as carts can get out.</p>
 <div class="law">
@@ -631,14 +631,14 @@ on "apply" (the suggestion goes straight to the model)
 <section class="demo" id="known">
   <div class="dhead">
     <h3>5 · Textbook next to toy, in the live run</h3>
-    <span class="badge">known result · Move 2 ✓</span>
+    <span class="badge">known result ✓</span>
   </div>
   <p>The system is every delivery cart from the moment it joins the dock queue until it reaches its tenant's cell. The toy counts arrivals, integrates how many carts are inside minute by minute, and times every delivery. The left number is what the toy measured; the right one is what Little's law says it should be from the toy's own λ and W. Press <b>Reset morning</b> to measure from an empty block.</p>
   <div class="controls">
     <span class="seglabel">Arrivals</span>
-    <div class="seg" id="segMode"><button id="btnModeWave" class="on" title="The A2 morning wave: a one-hour sine hump that repeats">Morning wave</button><button id="btnModeSteady" title="A constant rate set by the arrivals slider">Steady</button></div>
+    <div class="seg" id="segMode"><button id="btnModeWave" class="on" title="Morning wave: a one-hour sine hump that repeats">Morning wave</button><button id="btnModeSteady" title="A constant rate set by the arrivals slider">Steady</button></div>
     <span class="seglabel" style="margin-left:10px">Opposing mail</span>
-    <div class="seg" id="segMail"><button id="btnMailOn" class="on" title="Outgoing mail runs toward the dock in the same lane (the A2 toy)">On</button><button id="btnMailOff" title="Dock lift on its own: no carts coming the other way">Off</button></div>
+    <div class="seg" id="segMail"><button id="btnMailOn" class="on" title="Outgoing mail runs toward the dock in the same lane ">On</button><button id="btnMailOff" title="Dock lift on its own: no carts coming the other way">Off</button></div>
     <button class="btn" id="btnKnownReset" style="margin-left:auto">Reset and measure</button>
   </div>
   <div class="panels">
@@ -705,7 +705,7 @@ known-result runs (on load, and after the lift cycle, bays or routing change)
 <footer class="sitefoot">
   <div class="brandline"><span class="wordmark">UnderTheBlock</span> <span class="pill">ARC 327R</span></div>
   <div>ARC 327R · fictional project · one self-contained file — no network required</div>
-  <nav class="footnav" aria-label="Footer"><a href="#model">Model</a><a href="#refuse">Refusal</a><a href="#learn">Learning</a><a href="#trace">Score &amp; trace</a><a href="#known">A3 · L = λW</a></nav>
+  <nav class="footnav" aria-label="Footer"><a href="#model">Model</a><a href="#refuse">Refusal</a><a href="#learn">Learning</a><a href="#trace">Score &amp; trace</a><a href="#known">Known result</a></nav>
 </footer>
 
 </main>

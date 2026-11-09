@@ -230,7 +230,7 @@
           <label class="note"><input type="checkbox" id="chkCtrl" checked> traffic controller</label>
           <label class="note"><input type="checkbox" id="chkMail" checked> outgoing mail</label>
           <span class="sep"></span>
-          <label class="note">unloading <select id="selUnload" aria-label="Dock unloading"><option value="m" selected>measured (H-E-B)</option><option value="0">instant (A2 rule)</option></select></label>
+          <label class="note">unloading <select id="selUnload" aria-label="Dock unloading"><option value="m" selected>measured (H-E-B)</option><option value="0">instant (no unloading time)</option></select></label>
           <label class="note">crews <input type="number" id="inCrews" min="1" max="5" step="1" value="3" aria-label="Dock crews"></label>
           <button class="btn small" id="btnReset">New day</button>
         </div>
@@ -303,7 +303,7 @@
     </div>
     <div class="card">
       <h2>Little's law, today</h2>
-      <div class="note">The A3 known result, on this run: average packages inside the system against arrival rate × average time inside.</div>
+      <div class="note">Checked on this run: average packages inside the system against arrival rate × average time inside.</div>
       <div id="little" style="margin-top:10px"></div>
     </div>
   </div>
@@ -332,7 +332,7 @@
       <div class="card"><h2>5 · Can it run through floor plenums?</h2><div class="note">Heights drawn to scale. A plenum is the void under a raised floor.</div><div class="chartbox" id="plenumSvg"></div></div>
       <div class="card"><h2>6 · Can it swarm?</h2><div class="note">How many robots can be in the lane at once, and whether they jam.</div><div class="chartbox" id="swarmSvg"></div></div>
     </div>
-    <div class="card"><h2>How we know, and what we don't</h2><div id="howKnow"></div></div>
+    <div class="card"><h2>How we know</h2><div id="howKnow"></div></div>
   </div>
 </section>
 </main>
@@ -766,11 +766,11 @@ const unloadSample = (rng) => rng ? UNLOAD[Math.floor(rng() * UNLOAD.length)] : 
    PARAMETERS (tagged)
    ============================================================ */
 const P = {
-  rate: { v: 16, tag: 'assumed', what: 'Arrivals at the dock', unit: 'carts/hr', src: 'chosen in the A2 chat' },
-  cycle: { v: 2, tag: 'assumed', what: 'Dock lift cycle', unit: 'min', src: 'chosen in the A2 chat' },
-  step: { v: SETTINGS.TRUNK_STEP_TIME_MIN, tag: 'assumed', what: 'Time to cross one 2.3 m row', unit: 'min', src: 'chosen in the A2 chat (≈0.26 m/s)' },
-  mail: { v: SETTINGS.OUTGOING_RATE_PER_BUILDING_PER_HR, tag: 'assumed', what: 'Outgoing mail per building', unit: 'carts/hr', src: 'chosen in the A2 chat' },
-  linger: { v: SETTINGS.LINGER_PROBABILITY * 100, tag: 'assumed', what: 'Carts that pause in a bay (1–2.5 min)', unit: '%', src: 'chosen in the A2 chat' },
+  rate: { v: 16, tag: 'assumed', what: 'Arrivals at the dock', unit: 'carts/hr', src: 'set in the model' },
+  cycle: { v: 2, tag: 'assumed', what: 'Dock lift cycle', unit: 'min', src: 'set in the model' },
+  step: { v: SETTINGS.TRUNK_STEP_TIME_MIN, tag: 'assumed', what: 'Time to cross one 2.3 m row', unit: 'min', src: 'set in the model (≈0.26 m/s)' },
+  mail: { v: SETTINGS.OUTGOING_RATE_PER_BUILDING_PER_HR, tag: 'assumed', what: 'Outgoing mail per building', unit: 'carts/hr', src: 'set in the model' },
+  linger: { v: SETTINGS.LINGER_PROBABILITY * 100, tag: 'assumed', what: 'Carts that pause in a bay (1–2.5 min)', unit: '%', src: 'set in the model' },
   van: { v: '3–8', tag: 'assumed', what: 'Van trip, order to dock', unit: 'min', src: 'placeholder for the street leg' },
   perCart: { v: '10–30', tag: 'assumed', what: 'Parcels per cart (0.8 × 0.8 × 1.05 m)', unit: 'parcels', src: 'estimate from cart volume' },
   unload: { v: '0.6–11.8', tag: 'measured', what: 'Dock handling per delivery: open, inspect, pull onto the dock, scan', unit: 'min', src: 'H-E-B trials 1, 2, 4, 5 (38 s, 10.3, 11.0, 11.8 min) · laps 1–4 + 7 · mean ' + UNLOAD_MEAN.toFixed(1) },
@@ -1372,7 +1372,7 @@ $('btnCsv').addEventListener('click', async () => {
 /* ============================================================
    EXPLAIN VIEW — results from headless runs (10 random 8-hour shifts per setting)
    ============================================================ */
-const CAP = {"modes": [{"key": "noCtrl", "name": "Two-way, no controller", "note": "the A2 toy's rules \u00b7 at 16/hr it jams in ~2.7 h", "clean": 3, "ceil": 3}, {"key": "ctrl4", "name": "Controller, only 4 bays", "note": "bays miss some of the 8 choke points", "clean": 0, "ceil": 0, "fail": "jams at any load \u00b7 not a working mode"}, {"key": "sep", "name": "Mail moved to off-hours", "note": "one direction at a time, no controller", "clean": 17, "ceil": 30}, {"key": "ctrl", "name": "Controller + 10 bays", "note": "as designed: head-on carts waved past at a bay", "clean": 18, "ceil": 29}, {"key": "ctrl12", "name": "Controller + 12 bays", "note": "every possible bay built", "clean": 19, "ceil": 31}, {"key": "ctrlFast", "name": "Controller + 12 bays + 1-min lift", "note": "a lift twice as fast", "clean": 39, "ceil": 58}], "scales": [{"name": "1 building", "note": "Tenant A, next to the dock", "note2": "no controller", "clean": 16, "ceil": 29}, {"name": "2 buildings", "note": "A + B", "note2": "no controller", "clean": 13, "ceil": 13}, {"name": "3 buildings", "note": "A + B + C", "note2": "no controller", "clean": 7, "ceil": 7}, {"name": "4 buildings", "note": "the full block", "note2": "no controller", "clean": 3, "ceil": 3}, {"name": "4 buildings", "note": "+ controller", "note2": "+ 10 bays", "clean": 18, "ceil": 29, "hi": true}, {"name": "4 buildings", "note": "+ 12 bays", "note2": "+ 1-min lift", "clean": 39, "ceil": 58}], "swarm": [{"flow": "16/hr", "n": 6, "note": "two-way: jams", "jam": true}, {"flow": "28/hr", "n": 3, "note": "2-min lift"}, {"flow": "55/hr", "n": 6, "note": "1-min lift"}, {"flow": "110/hr", "n": 9, "note": "30 s lift"}, {"flow": "221/hr", "n": 15, "note": "15 s lift"}, {"flow": "304/hr", "n": 18, "note": "lane's limit"}]};
+const CAP = {"modes": [{"key": "noCtrl", "name": "Two-way, no controller", "note": "head-on carts wait \u00b7 at 16/hr it jams in ~2.7 h", "clean": 3, "ceil": 3}, {"key": "ctrl4", "name": "Controller, only 4 bays", "note": "bays miss some of the 8 choke points", "clean": 0, "ceil": 0, "fail": "jams at any load \u00b7 not a working mode"}, {"key": "sep", "name": "Mail moved to off-hours", "note": "one direction at a time, no controller", "clean": 17, "ceil": 30}, {"key": "ctrl", "name": "Controller + 10 bays", "note": "as designed: head-on carts waved past at a bay", "clean": 18, "ceil": 29}, {"key": "ctrl12", "name": "Controller + 12 bays", "note": "every possible bay built", "clean": 19, "ceil": 31}, {"key": "ctrlFast", "name": "Controller + 12 bays + 1-min lift", "note": "a lift twice as fast", "clean": 39, "ceil": 58}], "scales": [{"name": "1 building", "note": "Tenant A, next to the dock", "note2": "no controller", "clean": 16, "ceil": 29}, {"name": "2 buildings", "note": "A + B", "note2": "no controller", "clean": 13, "ceil": 13}, {"name": "3 buildings", "note": "A + B + C", "note2": "no controller", "clean": 7, "ceil": 7}, {"name": "4 buildings", "note": "the full block", "note2": "no controller", "clean": 3, "ceil": 3}, {"name": "4 buildings", "note": "+ controller", "note2": "+ 10 bays", "clean": 18, "ceil": 29, "hi": true}, {"name": "4 buildings", "note": "+ 12 bays", "note2": "+ 1-min lift", "clean": 39, "ceil": 58}], "swarm": [{"flow": "16/hr", "n": 6, "note": "two-way: jams", "jam": true}, {"flow": "28/hr", "n": 3, "note": "2-min lift"}, {"flow": "55/hr", "n": 6, "note": "1-min lift"}, {"flow": "110/hr", "n": 9, "note": "30 s lift"}, {"flow": "221/hr", "n": 15, "note": "15 s lift"}, {"flow": "304/hr", "n": 18, "note": "lane's limit"}]};
 const CREWCAP = { lo: [6, 11, 16, 23, 27], hi: [7, 14, 22, 28, 30], none: 29 };   // carts/hr, crews 1–5; lo = trials 2, 4, 5 · hi = trials 1, 2, 4, 5
 function bar(x, y, w, h, c, extra) { return `<rect x="${x}" y="${y}" width="${Math.max(0, w)}" height="${h}" rx="3" fill="${c}" ${extra || ''}/>`; }
 function txt(x, y, s, o) { o = o || {}; return `<text x="${x}" y="${y}" fill="${o.c || '#3d4241'}" font-size="${o.s || 11}" font-weight="${o.w || 400}" text-anchor="${o.a || 'start'}" font-family="${o.f === 'm' ? 'Geist Mono, monospace' : 'Geist, system-ui, sans-serif'}">${s}</text>`; }
@@ -1385,7 +1385,7 @@ function renderExplain() {
   const nc = Math.min(5, P.crews.v), cLo = CREWCAP.lo[nc - 1] * H16, cHi = CREWCAP.hi[nc - 1] * H16;
   const crewRate = (60 / UNLOAD_MEAN) * P.crews.v, liftRate = 60 / P.cycle.v;
   $('verdicts').innerHTML = [
-    ['Per day, with measured unloading', `${cLo}–${cHi}<small> carts / 16 h · ${P.crews.v} crew${P.crews.v > 1 ? 's' : ''}</small>`, `With the H-E-B unloading times, ${P.crews.v} crew${P.crews.v > 1 ? 's' : ''} at the dock. Without unloading (the A2 rule) the same block carried ${ctrl.clean * H16}–${ctrl.ceil * H16}. Still needs the traffic controller and bays at all 8 choke points.`],
+    ['Per day, with measured unloading', `${cLo}–${cHi}<small> carts / 16 h · ${P.crews.v} crew${P.crews.v > 1 ? 's' : ''}</small>`, `With the H-E-B unloading times, ${P.crews.v} crew${P.crews.v > 1 ? 's' : ''} at the dock. With instant unloading the same block carried ${ctrl.clean * H16}–${ctrl.ceil * H16}. Still needs the traffic controller and bays at all 8 choke points.`],
     ['Bottleneck', crewRate < liftRate ? `Dock crews<small> · ~${Math.round(crewRate)} carts/hr</small>` : `Dock lift<small> · ${Math.round(liftRate)} carts/hr</small>`, crewRate < liftRate ? `Measured at H-E-B: about ${UNLOAD_MEAN.toFixed(1)} min to open, inspect, pull a load onto the dock and scan it, so each crew handles ~${(60 / UNLOAD_MEAN).toFixed(0)} an hour. The lift (${Math.round(liftRate)}/hr) only binds from 5 crews up.` : 'One lift lowering one cart every 2 minutes sets the ceiling. The lane itself can carry about 300 carts/hr in one direction.'],
     ['Floor plenums', `No<small> · cart is 1.05 m tall</small>`, 'Office raised floors are 41–70 mm deep and data-centre floors 0.8–1.0 m. The robot only travels the stratum and the tenant lifts.'],
     ['Swarm', `One way: yes<small> · two way: only with bays</small>`, 'In one direction up to 18 robots can follow each other through the lane without a jam. Head-on traffic needs bays at every choke point and a controller.'],
@@ -1440,7 +1440,7 @@ function renderExplain() {
     let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Carts per day against the number of dock crews, with measured unloading">`;
     for (let v = 0; v <= mx; v += 100) s += `<line x1="52" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ececea"/>` + txt(46, Y(v) + 3, String(v), { s: 10, a: 'end', f: 'm', c: '#7a7f7e' });
     const goal = P.rate.v * H16;
-    const bars = [{ name: 'A2 rule', note: 'instant unloading', lo: CREWCAP.none, hi: CREWCAP.none, grey: true }].concat(CREWCAP.lo.map((lo, i) => ({ name: (i + 1) + ' crew' + (i ? 's' : ''), note: Math.round((60 / UNLOAD_MEAN) * (i + 1)) + '/hr unloaded', lo, hi: CREWCAP.hi[i], on: i + 1 === P.crews.v })));
+    const bars = [{ name: 'Instant', note: 'no unloading time', lo: CREWCAP.none, hi: CREWCAP.none, grey: true }].concat(CREWCAP.lo.map((lo, i) => ({ name: (i + 1) + ' crew' + (i ? 's' : ''), note: Math.round((60 / UNLOAD_MEAN) * (i + 1)) + '/hr unloaded', lo, hi: CREWCAP.hi[i], on: i + 1 === P.crews.v })));
     bars.forEach((m, i) => {
       const x = 60 + i * bw, bx = x + bw * 0.2, bwid = bw * 0.6;
       s += bar(bx, Y(m.hi * H16), bwid, 240 - Y(m.hi * H16), m.grey ? '#e2e3e0' : 'rgba(20,144,95,0.22)') + bar(bx, Y(m.lo * H16), bwid, 240 - Y(m.lo * H16), m.grey ? '#9aa09e' : m.on ? '#14905f' : '#0f1111');
@@ -1499,9 +1499,8 @@ function renderExplain() {
     s += txt(44, 14, 'most robots in the lane at once', { s: 10, f: 'm', c: '#7a7f7e' }) + txt(44, 292, 'carts per hour, one direction (outgoing mail off)', { s: 10, f: 'm', c: '#7a7f7e' });
     s += '</svg>'; $('swarmSvg').innerHTML = s;
   }
-  $('howKnow').innerHTML = `<p>Every bar comes from the simulation under the map: the same rows, bays, dock lift and jam rules as the A3 toy, with random arrivals. For each setting we ran <b>10 random 8-hour shifts</b> at rising arrival rates. The solid bar is the highest rate where at least 8 of the 10 shifts never spilled a cart onto the curb and never jammed; the pale bar is the highest rate where the dock queue stayed bounded. Days assume <b>16 operating hours</b> <span class="tag a">assumed</span>.</p>
-    <p><b>Measured, sourced, assumed.</b> Dock unloading is <span class="tag m">measured</span>: five timed unloads at an H-E-B loading dock, four of which fit a cart. Plenum depths are <span class="tag s">sourced</span> (Wikipedia, Raised floor). Arrival rate, lift cycle, robot speed, mail rate, lingering, parcels per cart and the 16-hour day are <span class="tag a">assumed</span> until your field kit measures them. The traffic controller is a planner rule, not physics: it waves head-on carts past each other at a bay.</p>
-    <p><b>What the model cannot know.</b> Tenant lifts are drawn but not simulated, so their capacity is untested. There is no maintenance downtime, no battery charging, no turning radius and no structure. Bands show random variation inside the model, not doubt about the model itself, so the real spread is wider than any band here.</p>`;
+  $('howKnow').innerHTML = `<p>Every bar comes from the simulation under the map: the same rows, bays, dock lift and jam rules as the Under the Block model, with random arrivals. For each setting we ran <b>10 random 8-hour shifts</b> at rising arrival rates. The solid bar is the highest rate where at least 8 of the 10 shifts never spilled a cart onto the curb and never jammed; the pale bar is the highest rate where the dock queue stayed bounded. Days assume <b>16 operating hours</b> <span class="tag a">assumed</span>.</p>
+    <p><b>Measured, sourced, assumed.</b> Dock unloading is <span class="tag m">measured</span>: five timed unloads at an H-E-B loading dock, four of which fit a cart. Plenum depths are <span class="tag s">sourced</span> (Wikipedia, Raised floor). Arrival rate, lift cycle, robot speed, mail rate, lingering, parcels per cart and the 16-hour day are <span class="tag a">assumed</span> until your field kit measures them. The traffic controller is a planner rule, not physics: it waves head-on carts past each other at a bay.</p>`;
 }
 $('btnRecalc').addEventListener('click', () => {
   $('recalcNote').textContent = 'Running 10 shifts per rate…';
