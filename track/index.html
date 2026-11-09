@@ -298,7 +298,7 @@
   <div class="grid2">
     <div class="card">
       <h2>What the numbers rest on</h2>
-      <div class="note">Every number the simulation uses that changes an ETA. Type in your field-kit results to replace an assumption.</div>
+      <div class="note">Every number the simulation uses that changes an ETA. Type in a measured value to replace an assumption.</div>
       <div id="params" style="margin-top:8px"></div>
     </div>
     <div class="card">
@@ -1348,7 +1348,7 @@ function renderParams() {
 $('params').addEventListener('change', (e) => {
   const k = e.target.dataset.p; if (!k) return;
   const v = parseFloat(e.target.value); if (!isFinite(v) || v <= 0) return;
-  P[k].v = v; P[k].tag = 'measured'; P[k].src = 'entered from the field kit';
+  P[k].v = v; P[k].tag = 'measured'; P[k].src = 'entered by hand';
   if (k === 'rate') $('inRate').value = Math.round(v);
   $('params')._h = null; renderParams();
 });
@@ -1500,7 +1500,7 @@ function renderExplain() {
     s += '</svg>'; $('swarmSvg').innerHTML = s;
   }
   $('howKnow').innerHTML = `<p>Every bar comes from the simulation under the map: the same rows, bays, dock lift and jam rules as the Under the Block model, with random arrivals. For each setting we ran <b>10 random 8-hour shifts</b> at rising arrival rates. The solid bar is the highest rate where at least 8 of the 10 shifts never spilled a cart onto the curb and never jammed; the pale bar is the highest rate where the dock queue stayed bounded. Days assume <b>16 operating hours</b> <span class="tag a">assumed</span>.</p>
-    <p><b>Measured, sourced, assumed.</b> Dock unloading is <span class="tag m">measured</span>: five timed unloads at an H-E-B loading dock, four of which fit a cart. Plenum depths are <span class="tag s">sourced</span> (Wikipedia, Raised floor). Arrival rate, lift cycle, robot speed, mail rate, lingering, parcels per cart and the 16-hour day are <span class="tag a">assumed</span> until your field kit measures them. The traffic controller is a planner rule, not physics: it waves head-on carts past each other at a bay.</p>`;
+    <p><b>Measured, sourced, assumed.</b> Dock unloading is <span class="tag m">measured</span>: five timed unloads at an H-E-B loading dock, four of which fit a cart. Plenum depths are <span class="tag s">sourced</span> (Wikipedia, Raised floor). Arrival rate, lift cycle, robot speed, mail rate, lingering, parcels per cart and the 16-hour day are <span class="tag a">assumed</span> until they are measured. The traffic controller is a planner rule, not physics: it waves head-on carts past each other at a bay.</p>`;
 }
 $('btnRecalc').addEventListener('click', () => {
   $('recalcNote').textContent = 'Running 10 shifts per rate…';

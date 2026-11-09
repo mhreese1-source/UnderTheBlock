@@ -80,4 +80,3 @@ Type measured values into *Fleet & data → What the numbers rest on*, and the t
 ## Related
 
 - [Under the Block](../toy/index.html): the toy with the Little's law known-result panel (A3 Move 2)
-- [Field Kit](../fieldkit/index.html): phone app for the bench test (A3 Move 3)

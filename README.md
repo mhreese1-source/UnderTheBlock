@@ -27,14 +27,13 @@ Deliveries stop clogging the curb. A van unloads at a dock, one lift lowers each
 | 4 · Correct, predict | Measured unloading swapped into the tracker: the dock crew, not the lift, is the narrowest step. Lock a prediction, test it | correction in |
 | 5 · Evidence panel | Measured, sourced and assumed on screen | next |
 
-## Three instruments
+## Two apps
 
-All three run in the browser on a laptop or phone, and share one simulation: the same rows, passing bays, dock lift and jam rules.
+Both run in the browser on a laptop or phone, and share one simulation: the same rows, passing bays, dock lift and jam rules.
 
 | | What it does |
 |---|---|
 | [**Under the Block**](toy/index.html) | The live 3D model in section, the routing proposer, and the Little's law panel (Move 2) |
-| [**Field Kit**](fieldkit/index.html) | Phone app for the bench test: tap arrivals and departures, time lift cycles, time dock unloads step by step, get λ, W, L, μ and dock work against the toy (Move 3). Holds the five H-E-B trials |
 | [**Track**](track/index.html) | Live field dashboard: follow one package from van to tenant, pinned to its bay or row, with an honest ETA band ([README](track/README.md)) |
 
 ## Findings so far
@@ -94,7 +93,6 @@ Three crews is the fewest that keeps up with the toy's 16 carts an hour. With me
 index.html        project homepage
 images/           renders and screenshots used by the homepage
 toy/index.html    Under the Block, the A3 model
-fieldkit/         Field Kit, the bench-test app
 track/            Track, the live dashboard, with its README and sim.js
 ```
 
